@@ -1,0 +1,63 @@
+#!/bin/sh
+USER_IMAGE="impmx/dumux-2.12:pdelab"
+# latest is with pdelab support:
+#USER_IMAGE="impmx/dumux-2.12:pdelab"
+# No pdelab support:
+#USER_IMAGE="impmx/dumux-2.12:user"
+default=`pwd`
+
+help ()
+{
+    P=`pwd`
+    echo ""
+    echo "Usage: start_dumux [image] [shared directory]"
+    echo ""
+    echo " * If no arguments are specified, the following values will be used:"
+    echo "  Default image is $USER_IMAGE."
+    echo "  Default shared input/output directory is $p."
+    echo ""
+}
+
+if [ "$1" = "--help" ]; then
+    help
+    exit 1
+fi
+
+if test x$1 = x; then IMAGE=$USER_IMAGE; else IMAGE=$1; fi
+if test x$2 = x; then SRC=$default; else SRC=$2; fi
+#CONTAINER=`perl zap_colon.pl $USER_IMAGE`
+if [ "${BASH_VERSINFO:-0}" -ge 4 ] ; then
+    echo "bash supports associative arrays"
+    CONTAINER=${IMAGE/:/-}
+    CONTAINER=${CONTAINER/\//-}
+else
+    CONTAINER="start_docker_container"
+fi
+
+#CONTAINER=${CONTAINER#*/}
+
+echo "Welcome to $CONTAINER (image: $IMAGE)"
+echo ""
+echo "Shared input/output directory "/home/dumux" is set to $SRC"
+echo "Now creating docker container"
+echo ""
+
+docker rm $CONTAINER
+XSOCK=/tmp/.X11-unix
+XAUTH=/tmp/.docker.xauth
+`xauth nlist $DISPLAY | sed 's/^..../ffff/' | xauth -f $XAUTH nmerge -`
+
+docker create -ti -e USER=$USER \
+        -e HOST_GID=$(id -g $USER) \
+        -e HOST_UID=$(id -u $USER)  \
+        -e SRC=$SRC \
+        -v $SRC:/home/dumux \
+        -v $XSOCK:$XSOCK \
+        -v $XAUTH:$XAUTH \
+        -e XAUTHORITY=$XAUTH \
+        -e DISPLAY=$DISPLAY \
+        --name=$CONTAINER \
+        --hostname=docker \
+        $IMAGE
+exec docker start -a -i $CONTAINER
+
