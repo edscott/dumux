@@ -173,6 +173,8 @@ RUN mkdir /home/dune-2.5
 WORKDIR /home/dune-2.5
 COPY set-user.sh /usr/local/src/
 RUN chmod a+rx /usr/local/src/set-user.sh
+ENV PATH /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/dune
+
 # End of impmx/dune-2.5
 CMD bash 
 

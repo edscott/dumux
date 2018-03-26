@@ -171,6 +171,7 @@ RUN cd /usr/local/src/dune && dune-common/bin/dunecontrol  --opts=dune-2.4.opts 
 RUN mkdir /home/dune-2.4
 WORKDIR /home/dune-2.4
 COPY set-user.sh /usr/local/src/
+ENV PATH /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/dune
 RUN chmod a+rx /usr/local/src/set-user.sh
 # End of impmx/dune-2.4
 CMD bash 
