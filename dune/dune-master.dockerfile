@@ -21,21 +21,21 @@ RUN modules='dune-common dune-geometry dune-grid dune-localfunctions dune-istl';
     cd /usr/local/src/dune; \
     for module in $modules; do \
         if test -d $module; then rm -rf $module; fi; \
-        git clone -b releases/2.6 https://gitlab.dune-project.org/core/$module.git $module; \
+        git clone -b master https://gitlab.dune-project.org/core/$module.git $module; \
     done;
 # Dune staging modules:
 RUN modules='dune-uggrid'; \
     cd /usr/local/src/dune; \
     for module in $modules; do \
         if test -d $module; then rm -rf $module; fi; \
-        git clone -b releases/2.6 https://gitlab.dune-project.org/staging/$module.git $module; \
+        git clone -b master https://gitlab.dune-project.org/staging/$module.git $module; \
     done;
 # Dune extension modules:
 RUN modules='dune-foamgrid dune-spgrid'; \
     cd /usr/local/src/dune; \
     for module in $modules; do \
         if test -d $module; then rm -rf $module; fi; \
-        git clone -b releases/2.6 https://gitlab.dune-project.org/extensions/$module.git $module; \
+        git clone -b master https://gitlab.dune-project.org/extensions/$module.git $module; \
     done;
 # Dune extension modules: (part 2, master branch):
 RUN modules='dune-alugrid'; \
