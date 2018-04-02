@@ -2,99 +2,103 @@
 FROM base/archlinux
 MAINTAINER Edscott Wilson Garcia
 # Update system package database
-# If building from behind a proxy, update proxy settings
-
+# If building from behind a proxy, update proxy settings or else comment out lines below
 ENV ftp_proxy http://192.168.148.25:8082
 ENV http_proxy http://192.168.148.25:8082
 ENV https_proxy http://192.168.148.25:8082
 
-#RUN echo "export http_proxy=$http_proxy" >> /etc/bash.bashrc && echo "export https_proxy=$https_proxy" >> /etc/bash.bashrc && echo "export ftp_proxy=$ftp_proxy" >> /etc/bash.bashrc
-# Set C and CXX flags for compiling 
+# Set global C and CXX flags for compiling 
 ENV CFLAGS -fPIC -Wno-deprecated
 ENV CXXFLAGS -fPIC -Wno-deprecated
 ENV CXX_FLAGS -fPIC -Wno-deprecated
-#RUN echo "export CFLAGS=$CFLAGS" >> /etc/bash.bashrc && echo "export CXXFLAGS=$CXXFLAGS" >> /etc/bash.bashrc
+
 # update package database
-RUN echo "updating database and ArchLinux base"; pacman -Syy; pacman -Syu --noconfirm 
-# Copy dune/dumux source from docker host
-# (repositories previously set to release branch)
-#
-######################################################################
-# * Install required packages:
-# cmake gdb pkgconfig make fakeroot
-# * Install build tools:
-# gcc gcc-fortran gcc-libs autoconf automake python2 rsync
-# * Install optional packages:
-#   (not including stuff for documentation generation)
-# lapack vc metis suitesparse openmpi tcsh
-# (gnuplot-qt package brings in all hell... better compile from source)
-#######################################################################
-# Barebones gnuplot from source: cairo terminal
-RUN pacman -S --needed --noconfirm --noprogressbar cmake gdb pkgconfig make fakeroot gcc gcc-fortran gcc-libs autoconf automake lapack vc metis suitesparse openmpi tcsh  python2 rsync  wget xterm git cairo pango 
+RUN echo "updating database and ArchLinux base 28-03-2018"; pacman -Syy; pacman -Syu --noconfirm 
+
+# Barebones gnuplot from source needs cairo terminal
+
+RUN pacman -S --needed --noconfirm --noprogressbar cmake gdb pkgconfig make fakeroot gcc gcc-fortran gcc-libs autoconf automake lapack vc metis suitesparse openmpi tcsh  python2 rsync  wget xterm git cairo pango hdf5 fftw arpack boost python2-numpy swig gtest  netcdf libmatio arpack texlive-core doxygen inkscape python-sphinx freeglut qt4 gnuplot
+
 # gnuplot (gnuplot-qt package brings in all hell... better compile from source)
-#
 ###########################################
 # * Install packages from aur.archlinux.org
-# 1. psurface
-# 2. parmetis
-# 3. superlu
 ###########################################
 RUN mkdir /usr/local/src/aur; useradd aur; chown -R aur /usr/local/src/aur;
 USER aur
-# download snapshots
-RUN cd /usr/local/src/aur; p=`pwd`;\
-    src='superlu psurface parmetis'; \
-    for a in $src ; do wget "https://aur.archlinux.org/cgit/aur.git/snapshot/$a.tar.gz"; done
+# download snapshots Block 1
 # untar
-RUN cd /usr/local/src/aur; p=`pwd`;  \
-    src='superlu psurface parmetis'; \
-    for a in $src ; do  tar -xzf `ls *.gz|grep $a`; done
 #build package    
-RUN cd /usr/local/src/aur; p=`pwd`; rm *.gz; \
-    src='superlu psurface parmetis'; \
+RUN cd /usr/local/src/aur; p=`pwd`;\
+    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch'; \
+    for a in $src ; do wget "https://aur.archlinux.org/cgit/aur.git/snapshot/$a.tar.gz";\
+    done;  \
+    for a in $src ; do  tar -xzf `ls *.gz|grep $a`; \
+    done; 
+
+RUN cd /usr/local/src/aur; p=`pwd`; rm *.gz;\
+    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch'; \
     for a in $src ; do d=`ls |grep $a`; cd $d;\
     makepkg --noconfirm;\
-    mv *.xz ../ && cd .. ; done
+    mv *.xz ../ && cd .. ; \
+    done;
+
 USER root
-RUN userdel aur
 #install
 RUN cd /usr/local/src/aur; \
-    src='superlu psurface parmetis'; \
+    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch'; \
+    for a in $src ; do echo "package=$a"; \
+    d=`ls *.xz | grep $a`; \
+    pacman -U --noconfirm $d ; \
+    done;
+
+USER aur
+# download snapshots Block 2
+RUN cd /usr/local/src/aur; p=`pwd`;\
+    src='zoltan eigen32'; \
+    for a in $src ; do wget "https://aur.archlinux.org/cgit/aur.git/snapshot/$a.tar.gz"; \
+    done;
+
+# untar
+RUN cd /usr/local/src/aur; p=`pwd`;  \
+    src='zoltan eigen32'; \
+    for a in $src ; do  tar -xzf `ls *.gz|grep $a`; \
+    done;
+
+#build package    
+RUN cd /usr/local/src/aur; p=`pwd`; rm *.gz; \
+    src='zoltan eigen32'; \
+    for a in $src ; do d=`ls |grep $a`; cd $d;\
+    makepkg --noconfirm;\
+    mv *.xz ../ && cd .. ; \
+    done;
+
+USER root
+#install
+RUN cd /usr/local/src/aur; \
+    src='zoltan eigen32'; \
     for a in $src ; do echo "package=$a"; \
     d=`ls *.xz | grep $a`; \
     pacman -U --noconfirm $d ; done
+#  pastix is pending.
+USER root
+RUN userdel aur
 
-
-
-#https://aur.archlinux.org/cgit/aur.git/snapshot/psurface.tar.gz
-#ENV AUR 'psurface parmetis superlu'
-# Add necessary scripts:
-
-
-#ADD makepackage /usr/local/src/
-#RUN chmod a+rx /usr/local/src/makepackage 
-
-#ADD AUR/psurface /home/psurface
-#ADD AUR/parmetis /home/parmetis
-#ADD AUR/superlu /home/superlu 
-#  
-#RUN a='superlu psurface parmetis'; for p in $a ; do useradd $p; chown -R $p /home/$p; runuser -l $p '/usr/local/src/makepackage'; pacman -U --noconfirm `ls /home/$p/*xz`; rm -rf /home/$p; done
-##############################
 ##############################
 # Install directly from source
-# 1. PETSc
-# 2. Alberta (pending)
-# 3. arpackpp (pending)
+# Alberta http://www.mathematik.uni-stuttgart.de/fak8/ians/lehrstuhl/nmh/downloads/alberta/alberta-3.0.1.tar.xz
+# sionlib http://apps.fz-juelich.de/jsc/sionlib/download.php?version=1.7.1
+# 
 ##############################
-#ADD src/petsc-lite-3.8.3.tar.gz /usr/local/src/
-#FIXME:  dune-fem problem with petsc...
-#RUN cd /usr/local/src; wget "http://ftp.mcs.anl.gov/pub/petsc/release-snapshots/petsc-lite-3.8.3.tar.gz"; tar -xsf petsc-lite-3.8.3.tar.gz; cd petsc-3.8.3; python2 ./configure CXXFLAGS=$CXXFLAGS --prefix=/usr && make install
+RUN cd /usr/local/src; wget http://www.mathematik.uni-stuttgart.de/fak8/ians/lehrstuhl/nmh/downloads/alberta/alberta-3.0.1.tar.xz; tar -xJf alberta-3.0.1.tar.xz; rm /usr/local/src/alberta-3.0.1.tar.xz
+RUN cd /usr/local/src/alberta-3.0.1; ./configure --prefix=/usr && make -j6 && make install
+# compile issue:
+#RUN cd /usr/local/src; wget -O sionlib.tar.gz http://apps.fz-juelich.de/jsc/sionlib/download.php?version=1.7.1; tar -xzf sionlib.tar.gz
+
 #Install gnuplot from source. Version 5.2
 # This no longer downloads correctly...
 #RUN cd /usr/local/src; wget "https://sourceforge.net/projects/gnuplot/files/gnuplot/5.2.2/gnuplot-5.2.2.tar.gz/download"; mv download gnuplot-5.2.2.tar.gz; tar -xzf gnuplot-5.2.2.tar.gz; cd gnuplot-5.2.2; ./configure --with-qt=no ; make; make install;
-COPY gnuplot-5.2.2.tar.gz /usr/local/src/
-RUN cd /usr/local/src; tar -xzf gnuplot-5.2.2.tar.gz; cd gnuplot-5.2.2; ./configure --with-qt=no ; make; make install;
-RUN rm /usr/local/src/*.gz
+#COPY gnuplot-5.2.2.tar.gz /usr/local/src/
+#RUN cd /usr/local/src; tar -xzf gnuplot-5.2.2.tar.gz; cd gnuplot-5.2.2; ./configure --with-qt=no ; make; make install; rm /usr/local/src/gnuplot-5.2.2.tar.gz
 
 ############################################
 # Configure and compile Dune
@@ -174,7 +178,7 @@ RUN mkdir /home/dune-2.6
 WORKDIR /home/dune-2.6
 COPY set-user.sh /usr/local/src/
 RUN chmod a+rx /usr/local/src/set-user.sh
-ENV PATH /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/dune
+ENV PATH /usr/local/sbin:/usr/local/bin:/usr/bin:/usr/bin/site_perl:/usr/bin/vendor_perl:/usr/bin/core_perl:/opt/dune/bin
 
 # End of impmx/dune-2.6
 CMD bash 

@@ -26,7 +26,6 @@ GXX_OPTS=" \
 # configure flags
 CMAKE_FLAGS=" \
   -DCMAKE_CXX_FLAGS=\"$GXX_WARNING_OPTS $GXX_OPTS\" \
-  -DUG_DIR=ug_installation_path \
   -fPIC -DCMAKE_CXX_COMPILER=g++  -DCMAKE_INSTALL_PREFIX='/opt/dune'"
 
 
