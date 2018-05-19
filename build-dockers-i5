@@ -1,0 +1,4 @@
+#!/bin/sh
+docker build -f dune/dune-2.4.dockerfile -t impmx/dune-2.4:i5 dune/ && \
+docker build -f dune/dune-2.4-pdelab-i5.dockerfile -t impmx/dune-2.4:pdelab-i5 dune/ \
+docker buils -f dumux/dumux-2.12-2.4-i5.dockerfile -t impmx/dumux-2.12-2.4:i5 dumux/
