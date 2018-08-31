@@ -1,4 +1,6 @@
 # Docker file to build Dumux on archlinux base
+# Build with
+# docker build -t impmx/archlinux:20180823 -f archlinux/archlinux.dockerfile archlinux
 FROM base/archlinux
 MAINTAINER Edscott Wilson Garcia <edscott@imp.mx>
 # Update system package database
@@ -14,12 +16,12 @@ ENV CXXFLAGS -fPIC -Wno-deprecated
 ENV CXX_FLAGS -fPIC -Wno-deprecated
 
 # update package database
-RUN echo "updating database and ArchLinux base 02-04-2018"; \
+RUN echo "updating database and ArchLinux base 20180823"; \
     pacman -Syy; pacman -Syu --noconfirm 
 
 # Barebones gnuplot from source needs cairo terminal
 
-RUN pacman -S --needed --noconfirm --noprogressbar cmake gdb pkgconfig make \
+RUN pacman -S --needed --noconfirm --noprogressbar cmake gdb  pkgconfig make \
     fakeroot gcc gcc-fortran gcc-libs autoconf automake lapack vc metis \
     suitesparse openmpi tcsh python2 rsync  wget xterm git cairo pango hdf5 \
     fftw arpack boost python2-numpy swig gtest  netcdf libmatio arpack \
@@ -31,24 +33,24 @@ RUN pacman -S --needed --noconfirm --noprogressbar cmake gdb pkgconfig make \
 RUN mkdir /usr/local/src/aur; useradd aur; chown -R aur /usr/local/src/aur;
 
 USER aur
+# zoltan requires scotch
+# papi is broken today 20180802 (skipping)
+# scotch is broken today 20180806 (skipping)
+# This as non root user
 
-# download snapshots Block 1
-# untar
-#build package    
 RUN cd /usr/local/src/aur; \
     p=`pwd`;\
-    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch'; \
+    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch zoltan eigen32'; \
     for a in $src ; do \
         wget "https://aur.archlinux.org/cgit/aur.git/snapshot/$a.tar.gz";\
     done;  \
     for a in $src ; do  \
         tar -xzf `ls *.gz|grep $a`; \
-    done; 
-
-RUN cd /usr/local/src/aur; \
+    done;  \
+cd /usr/local/src/aur; \
     p=`pwd`; \
     rm *.gz;\
-    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch'; \
+    src='superlu psurface parmetis petsc arpackpp scalapack'; \
     for a in $src ; do \
         d=`ls |grep $a`; \
         cd $d;\
@@ -58,61 +60,17 @@ RUN cd /usr/local/src/aur; \
     done;
 
 USER root
-
-#install
-RUN cd /usr/local/src/aur; \
-    src='papi superlu psurface parmetis petsc arpackpp scalapack scotch'; \
-    for a in $src ; do \
-        echo "package=$a"; \
-        d=`ls *.xz | grep $a`; \
-        pacman -U --noconfirm $d ; \
-    done;
-
-USER aur
-
-# download snapshots Block 2
-RUN cd /usr/local/src/aur; \
-    p=`pwd`;\
-    src='zoltan eigen32'; \
-    for a in $src ; do \
-        wget "https://aur.archlinux.org/cgit/aur.git/snapshot/$a.tar.gz"; \
-    done;
-
-# untar
-RUN cd /usr/local/src/aur; \
-    p=`pwd`;  \
-    src='zoltan eigen32'; \
-    for a in $src ; do \
-        tar -xzf `ls *.gz|grep $a`; \
-    done;
-
-#build package    
-RUN cd /usr/local/src/aur; \
-    p=`pwd`; \
-    rm *.gz; \
-    src='zoltan eigen32'; \
-    for a in $src ; do \
-        d=`ls |grep $a`; \
-        cd $d; \
-        makepkg --noconfirm;\
-        mv *.xz ../ && \
-        cd .. ; \
-    done;
-
-USER root
-
-#install
-RUN cd /usr/local/src/aur; \
-    src='zoltan eigen32'; \
-    for a in $src ; do \
-        echo "package=$a"; \
-        d=`ls *.xz | grep $a`; \
-        pacman -U --noconfirm $d ; \
-    done
-#  pastix is pending.
-
-USER root
 RUN userdel aur
+#this as root
+RUN cd /usr/local/src/aur; \
+    src='superlu psurface parmetis petsc arpackpp scalapack '; \
+    for a in $src ; do \
+        echo "package=$a"; \
+        d=`ls *.xz | grep $a`; \
+        pacman -U --noconfirm $d ; \
+    done;  
+ 
+
 
 ##############################
 # Install directly from source
@@ -122,17 +80,17 @@ RUN userdel aur
 # sionlib http://apps.fz-juelich.de/jsc/sionlib/download.php?version=1.7.1
 # 
 ##############################
-RUN cd /usr/local/src; \
-    wget \
-    http://www.mathematik.uni-stuttgart.de/fak8/ians/lehrstuhl/nmh/downloads/\
-alberta/alberta-3.0.1.tar.xz; \
-    tar -xJf alberta-3.0.1.tar.xz; \
-    rm /usr/local/src/alberta-3.0.1.tar.xz
+#RUN cd /usr/local/src; \
+#    wget \
+#    http://www.mathematik.uni-stuttgart.de/fak8/ians/lehrstuhl/nmh/downloads/\
+#alberta/alberta-3.0.1.tar.xz; \
+#    tar -xJf alberta-3.0.1.tar.xz; \
+#    rm /usr/local/src/alberta-3.0.1.tar.xz
 
-RUN cd /usr/local/src/alberta-3.0.1; \
-    ./configure --prefix=/usr && \
-    make -j6 && \
-    make install
+#RUN cd /usr/local/src/alberta-3.0.1; \
+#    ./configure --prefix=/usr && \
+#    make -j6 && \
+#    make install
 
 # compile issue:
 #RUN cd /usr/local/src; wget -O sionlib.tar.gz 

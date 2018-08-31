@@ -1,5 +1,5 @@
 # Docker file to build Dumux on archlinux base
-FROM impmx/dune-2.5:pdelab
+FROM impmx/dune-pdelab-2.5:20180823
 MAINTAINER Edscott Wilson Garcia
 # Update system package database
 # If building from behind a proxy, update proxy settings

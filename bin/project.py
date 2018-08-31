@@ -47,22 +47,28 @@ def color(which):
 
 def help(argv, available_directives, defaults):
     wd=os.getcwd()+"/projects"
-    helptxt= color("b-blue")+"*** Usage:\n  "+argv[0]+version()+" [options]"+color("green")+"\n\
+    helptxt= color("b-blue")+"*** Usage:\n  "+argv[0]+version()+" [options]"+ \
+        color("green")+"\n\
 # arguments:\n\
 #   --help  -> print this text\n\
 #   --projects={output directory} -> output directory for executable and runtime \n\
-#   --only-compile -> remove build-cmake and compile, do not copy anything (default: off) \n\
+#   --only-compile -> remove build-cmake and compile, do not copy anything \
+(default: off) \n\
 #   --no-clean -> do not remove input file from target run dir (default: clean)\n\
-#   --query -> process input file in interactive mode from keyboard (default: no-query)\n\
-#   --verbose -> print stderr output from configure step to terminal (default: no-verbose)\n\
+#   --query -> process input file in interactive mode from keyboard (default: \
+no-query)\n\
+#   --verbose -> print stderr output from configure step to terminal (default: \
+no-verbose)\n\
 #   --source={problem} -> solve {problem} with defaults, unattended \n\
 #   --search={search directory} -> search for {problem} directory (default ./)\n\
 #   --projects={projects directory} -> output directory for unattended {problem}\n\
 #               (default: "+wd+")\n\
 #   --overwrite -> Force creation of new project (default: query before overwrite)\n\
+#   --run -> Short circuit to run problem (default: off)\n\
 #   --input=n -> With multiple input files, use the one indexed by {n}\n\
 #   --plot -> Follow simulation with gnuplot output\n\
-#   --MPI=n -> mpirun --np n, where {n} is an integer (implies -DAMG)"+color("default")
+#   --MPI=n -> mpirun --np n, where {n} is an integer (implies -DAMG)"+ \
+    color("default")
     print(helptxt)
     print_bblue("# Code particular directives:")
     for k in available_directives.keys():
@@ -72,8 +78,6 @@ def help(argv, available_directives, defaults):
             if  k == d:
                 text = text + color("b-red") + " (default)" + color("default")
         print(text)
-#    for directive in available_directives:
-#        print("#                  --D"+directive)
     sys.exit(1)
 ########################### functions
 def get_specific_problem(argv):
@@ -94,7 +98,8 @@ def get_specific_problem(argv):
                 try:
                     os.makedirs(PROJECTS)
                 except:
-                    error("Cannot create projects directory "+color("b-magenta")+PROJECTS)
+                    error("Cannot create projects directory "+color("b-magenta")+ \
+                    PROJECTS)
 
 # Specification of search directory from command line
     for arg in argv:
@@ -113,6 +118,7 @@ def get_specific_problem(argv):
 
 # Specification of specific source (and problem_directory) for unattended run
     for arg in argv:
+            
         if ("--source=" in arg[0:len("--source=")]):
             debug(arg+"specified, going into non interactive mode...")
             glob_pattern=os.path.abspath(sd)+'/**'
@@ -145,7 +151,8 @@ def get_specific_problem(argv):
             if (found < 1):
                 error("Cannot continue, file not found: "+specific)
             env['DEFAULTS']="yes"   
-            info("Unattended run for "+os.path.abspath(problem_directory)+"/"+problem_src)
+            info("Unattended run for "+os.path.abspath(problem_directory)+"/"+ \
+            problem_src)
             info("Unattended projects at "+PROJECTS)
             return (os.path.abspath(problem_directory), problem_src, PROJECTS, sd)
 
@@ -167,7 +174,7 @@ def print_bold(message):
     return
 def warn(message):
     print(color("b-red")+"*** Warning: "+color("b-blue")+message+color("default"))
-    time.sleep(1)
+    #time.sleep(1)
     return
 def error(message):
     print(color("b-red")+"*** Error: "+message+color("default"))
@@ -191,6 +198,10 @@ def get_overwrite(argv):
         if ("--overwrite" in arg[0:len("--overwrite")]):
             warn("Forcing creation of new project...")
             return "yes"            
+    for arg in argv:
+        if ("--run" in arg[0:len("--run")]):
+            warn("Short circuit to run...")
+            return "no"  
     return ""
 
 def input_index_f(argv):
@@ -242,7 +253,8 @@ def choose_problem(source_dir):
         print_bold(directory[i]+filename+" ["+str(i)+"]")
         input_list.append(filename)
         i=i+1
-    input_index_s=input(color("b-red")+"> "+color("default")+color("green")+"Select problem to configure [0]: "+color("default"))
+    input_index_s=input(color("b-red")+"> "+color("default")+color("green")+ \
+    "Select problem to configure [0]: "+color("default"))
     if (input_index_s == ""):
         input_index = 0
     else:
@@ -254,7 +266,8 @@ def choose_problem(source_dir):
 
     return (problem_directory, problem_src)
 
-def configure_project(argv, problem_directory, problem_src, default_directives, PROJECTS, dirTag, query ):
+def configure_project(argv, problem_directory, problem_src, default_directives, \
+PROJECTS, dirTag, query ):
     env={}
     env.update(os.environ)
     # slicing
@@ -266,7 +279,8 @@ def configure_project(argv, problem_directory, problem_src, default_directives, 
     if query:
         info("Project name is the same thing as the dune-module name")
         #module_name=input("Module name ["+module_name+"]:")
-        module_name=input(color("green")+"Module name ["+module_name+"]:"+color("default"))
+        module_name=input(color("green")+"Module name ["+module_name+"]:"+ \
+        color("default"))
         if (module_name == ""):
             module_name=problem_src[:sublength] + dirTag
       
@@ -339,11 +353,11 @@ while (1) {\n\
     load \""+gnuplot_dir+"/multiplot.scr\"\n\
     unset output\n\
 ")
-
+    fixedTitle = infile.replace("_","-")
     with open (gnuplot_dir+'/multiplot.scr', 'w') as f:
         f.write("\
 file9 = \""+gnuplot_dat+"\"\n\
-set multiplot layout 1,2 title \""+infile+"\" font \",14\"\n\
+set multiplot layout 1,2 title \""+fixedTitle+"\" font \",14\"\n\
 unset key \n\
 set grid\n\
 hours(x) = x/3600\n\
@@ -383,7 +397,7 @@ unset multiplot \n\
 
 
 
-def get_parameter(line):
+def get_parameter(line, group):
 #  if("Name" in line):
 #    return ""
   if "#" in line[0:1]:
@@ -399,14 +413,21 @@ def get_parameter(line):
     b1 = " "
   else:
     b1 = b[1]
-  print(color("b-red")+"#"+b1+":"+color("default"))
-  new_value=input(parts[0]+"["+b[0]+"] = ")
+  print(color("b-blue")+"# "+group+" "+color("b-red")+b1+color("default"))
+  new_value=input(color("bold")+parts[0]+"["+color("green")+b[0]+color("default")+ \
+    color("bold")+"] = "+color("default"))
   if new_value == "":
     retval = ""
   else:
     retval = parts[0]+" = "+new_value+"  #"+b1+"\n"
   return retval
 
+def get_group(line):
+    if "[" in line[0:1]:
+        a=line.replace("[", " ")
+        group=a.replace("]", " ")
+        return group
+    return None
 
 def set_parameters(path):
     print_green("Setting runtime parameters in file: "+color("b-magenta")+path)
@@ -419,11 +440,17 @@ def set_parameters(path):
     lines=content.split("\n")
     new_content=""
     item=1;
+    group = "NoGroup"
     for line in lines:
          writ=0
          newline = ""
+         newgroup = get_group(line)
+         if newgroup != None:
+            group = newgroup
+         if "#" in line[0:1]:
+            print(color("b-magenta")+line+color("default"))
          if ("=" in line):
-            newline = get_parameter(line)
+            newline = get_parameter(line, group)
          if (newline == ""):
             newline = line
          new_content += newline
@@ -475,7 +502,10 @@ def select_input_file(argv, problem_directory):
 
 def get_directives(argv, available_directives, defaults):
     dirTag=""
-    default_directives=""
+    if (os.environ.get('CXXFLAGS') == None):
+        default_directives="";
+    else:
+        default_directives=os.environ["CXXFLAGS"]
     directive_count=0
     for arg in argv:
 #        debug("arg="+arg)
@@ -486,27 +516,46 @@ def get_directives(argv, available_directives, defaults):
                     found=1
                     directive_count = directive_count+1;
             if found==0:
-                error("Specificied directive \""+arg[3:99]+"\" is not in available_directives list. Aborting.")
-                sys.exit(1)
+                warn("Specificied directive \""+arg[3:99]+ \
+                "\" is not in available_directives list (adding anyway).")
+            #    sys.exit(1)
             info("Adding compilation directive: ")
             print_bblue(arg)
-            print_green("   --> "+available_directives[arg[3:]])
+            if found:
+                print_green("   --> "+available_directives[arg[3:]])
             default_directives = default_directives + " "+arg[1:99]
             dirTag = dirTag + "-" + arg[3:99]
     if directive_count > 0 and directive_count < len(defaults):
-            error("Insuficient directives specified. Must specify at least "+str(len(defaults))+ ".")
-    if (dirTag == ""):
-        warn("No specific compilation directives specified, using defaults:")
-        for d in defaults:
-            print_bblue("--D"+d)
-            print_green("   --> "+available_directives[d])
-            default_directives = default_directives + " -D"+d
-            dirTag = dirTag + "-" + d
+            warn("Less than "+str(len(defaults)) + \
+            " directives specified: using source code defaults for the rest.")
+    warn("Adding default directives:")
+    for d in defaults:
+        print_bblue("--D"+d)
+        print_green("   --> "+available_directives[d])
+        default_directives = default_directives + " -D"+d
+        dirTag = dirTag + "-" + d
+
+#    if (dirTag == ""):
+#        warn("No specific compilation directives specified, using defaults:")
+#        for d in defaults:
+#            print_bblue("--D"+d)
+#            print_green("   --> "+available_directives[d])
+#            default_directives = default_directives + " -D"+d
+#            dirTag = dirTag + "-" + d
+
     debug("Creating program with the following directives: "+ default_directives)
     debug("dirTag is "+ dirTag)
-    print(color("b-magenta")+"Use "+color("b-red")+"--help"+color("default") +color("b-magenta")+" for full instructions and directives"+color("default"))
-    input(color("b-blue")+"If this is not correct type "+color("b-red")+"CTRL-C"+color("b-blue")+" to abort"+color("default"))
-    print("")
+    print(color("b-magenta")+"Use "+color("b-red")+"--help"+color("default") + \
+    color("b-magenta")+" for full instructions and directives"+color("default"))
+    pause=1;
+    for arg in argv:
+        if ("--run" in arg[0:len("--run")]):
+            warn("Short circuit to run...")
+            pause=0
+    if pause==1:
+        input(color("b-blue")+"If this is not correct type "+color("b-red")+\
+        "CTRL-C"+color("b-blue")+" to abort"+color("default"))
+        print("")
     return (dirTag, default_directives)
 
 def make(argv, program_dir, module_name, default_directives):
@@ -534,7 +583,8 @@ def make(argv, program_dir, module_name, default_directives):
      if ("--verbose" in argv[1:]):
        command = "dunecontrol --only=" +module_name+ " configure"+" >/dev/null"
      else:  
-       command = "dunecontrol --only=" +module_name+ " configure"+" >/dev/null 2>>/dev/null"
+       command = "dunecontrol --only=" +module_name+ " configure"+ \
+       " >/dev/null 2>>/dev/null"
      args=["/bin/bash", "-c", command]
      os.execvpe("/bin/bash", args, env) 
      os._exit(123)
@@ -564,22 +614,27 @@ def mpi_command(argv, c):
 
 def run_in_background(command):
     info("Detached process: "+command)
-    pid=os.fork();
-    if pid==0:
+    pid1=os.fork();
+    if pid1==0:
         args=["/bin/bash", "-c", command]
         os.execvp(args[0], args) 
         os._exit(123)
-    return pid
+    return pid1
 
 def tail_logfile(program_name):
     command = "/usr/bin/tail -f "+ "../"+program_name+".log |grep \"Time step\""
     info(" "+command)
-    pid=os.fork();
-    if pid==0:
-        args=["/bin/bash", "-c", "/usr/bin/tail -f "+ "../"+program_name+".log |grep \"Time step\""]
-        os.execvp(args[0], args) 
-        os._exit(123)
-    return pid
+    pid2=os.fork();
+    if pid2:
+        return pid2 
+    #subprocess.run(["/bin/bash", "-c", command]) 
+    #return    
+    args=["/bin/bash", "-c", "/usr/bin/tail -f "+ "../"+program_name+ \
+    ".log |grep \"Time step\""]
+    #args=["/usr/bin/tail","-f","../"+program_name+".log"]
+    os.execvp(args[0], args) 
+    os._exit(123)
+    return
 
 #################################  main program
 def main(argv, available_directives, defaults):
@@ -603,7 +658,8 @@ def main(argv, available_directives, defaults):
     else:
         env['DEFAULTS'] = "yes"
 
-    module = configure_project(argv, problem_directory, problem_src, default_directives, PROJECTS, dirTag, query)
+    module = configure_project(argv, problem_directory, problem_src, \
+        default_directives, PROJECTS, dirTag, query)
     program_dir = PROJECTS + "/" + module
     sublength=len(problem_src)-3
     program_name = problem_src[:sublength]
@@ -647,7 +703,8 @@ def main(argv, available_directives, defaults):
         if env['DEFAULTS'] == "yes":
             run_time_dir = ""
         else:    
-            run_time_dir=input(color("green")+"Output directory ["+default_output_dir+"]:"+color("default"))
+            run_time_dir=input(color("green")+"Output directory ["+ \
+            default_output_dir+"]:"+color("default"))
         if (run_time_dir == ""):
             run_time_dir=default_output_dir
 
@@ -666,7 +723,8 @@ def main(argv, available_directives, defaults):
             os.makedirs(vtk_dir)
 
 
-    if (not os.path.isfile(executable_dir+'/'+program_name) or "--only-compile" in argv[1:]):
+    if (not os.path.isfile(executable_dir+'/'+program_name) or "--only-compile" \
+        in argv[1:]):
         make(argv, program_dir, module, default_directives)
         if ( "--only-compile" in argv[1:]):
             info("--only-compile complete.")
@@ -675,7 +733,8 @@ def main(argv, available_directives, defaults):
     # Now prepare to run the program
     # copy input file if it does not exist in runtime directory...
     if (not os.path.isfile(run_time_dir+'/'+os.path.basename(input_file))):
-        output = subprocess.check_output(['cp', '-v', input_file, run_time_dir+'/'+os.path.basename(input_file)])
+        output = subprocess.check_output(['cp', '-v', input_file, run_time_dir+ \
+        '/'+os.path.basename(input_file)])
         debug(output.decode("ascii"))
 
     # And run the program...
@@ -686,42 +745,54 @@ def main(argv, available_directives, defaults):
         os.remove("../"+program_name+".log")
     open("../"+program_name+".log", 'w').close
 
-    command = executable_dir+"/"+program_name+ " -ParameterFile ../"+os.path.basename(input_file)+" > ../"+program_name+".log"
+    command = executable_dir+"/"+program_name+ " -ParameterFile ../"+ \
+        os.path.basename(input_file)+" > ../"+program_name+".log"
+    for arg in argv:
+        if ("--gdb" in arg):
+            env={}
+            env.update(os.environ)
+            command = "gdb -cd="+ vtk_dir + " " + executable_dir+"/"+ \
+            program_name + " -ex \"set args -ParameterFile ../" + \
+            os.path.basename(input_file)+"\""
+            print("Command = \""+command+"\"")
+            args=["/bin/bash", "-c", command]
+            os.execvpe("/bin/bash", args, env) 
+            os._exit(123)
+
     # Modify with mpirun if specified on command line
     command = mpi_command(argv, command)
 
     pid_run=run_in_background(command)
-    pid_tail=tail_logfile(program_name)
 
     if ("--plot" in argv[1:]):
         pid_gnuplot=monitor(run_time_dir, gnuplot_subtitle, program_name)
     else:
         pid_gnuplot=0;
 
+    pid_tail=tail_logfile(program_name)
     os.waitpid(pid_run, 0)
-    os.kill(pid_tail,signal.SIGKILL)
-    os.waitpid(pid_tail, 0)
 
     if (pid_gnuplot != 0):
         gnuplot=shutil.which("gnuplot")
         if (gnuplot != None):
           while (1):
             answer=input(color("b-red")+"Finish process? [Y]/N: "+color("default"))
-            if (answer == "Y" or answer == "y"):
-                os.kill(pid_gnuplot,signal.SIGKILL)
-                sys.exit()
-            if (answer == "N" or answer == "n"):
-                info("Please note that process ",pid_gnuplot, " is still active.\n")
+            if (answer == "Y" or answer == "y" or answer == "N" or answer == "n"):
+                if (answer == "Y" or answer == "y"):
+                    os.kill(pid_gnuplot,signal.SIGKILL)
+                if (answer == "N" or answer == "n"):
+                    info("Please note that process "+str(pid_gnuplot)+ \
+                    " is still active.\n")
+                print("killing tail subprocess: "+str(pid_tail))
+                os.killpg(os.getpgid(pid_tail), signal.SIGKILL)
+                os.waitpid(pid_tail, 0)
                 sys.exit()
             print_green("Please answer Y or N\n")
     info("Run complete.\n")
+    
+    print("killing tail subprocess: "+str(pid_tail))
+    os.killpg(os.getpgid(pid_tail), signal.SIGKILL)
+    os.waitpid(pid_tail, 0)
     return None
 
-#def lswf():
-#    available_directives = {"AMG":"Solve with AMG iterations", "UMF":"Solve direct with Umfpack backend", "DIFFUSION":"Use MilliganQuirk molecular diffusion", "ALPHA_DIFFUSION":"Use alpha diffusion (implies DIFFUSION)", "USE_BC":"BrooksCorey", "BCM":"BrooksCorey modified", "BCMV":"Salinity variable BrooksCorey modified non-coupled", "BCMVC":"Salinity variable BrooksCorey modified coupled", "SH2O":"Use simple water", "TH2O":"Use tabulated water", "NTH2O":"Use non-tabulated water"}
-#available_directives = ["AMG", "UMF", "DIFFUSION", "ALPHA_DIFFUSION", "USE_BC", "BCM", "BCMV", "BCMVC", "SH2O", "TH2O", "NTH2O"]
-#    defaults = ["BCMVC", "UMF", "SH2O"]
-#    main(available_directives, defaults)
-
-#lswf()
 

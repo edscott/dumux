@@ -1,5 +1,5 @@
 # Docker file to build Dumux on archlinux base
-FROM impmx/dune-2.5:generic
+FROM impmx/dune-2.5:20180823
 MAINTAINER Edscott Wilson Garcia <edscott@imp.mx>
 
 # PDElab
@@ -11,9 +11,8 @@ RUN modules='dune-fem'; \
         fi; \
         git clone -b releases/2.5 \
         https://gitlab.dune-project.org/dune-fem/$module.git $module; \
-    done;
-
-# Jed Brown workaround hack
+    done;\
+echo "# Jed Brown workaround hack"; 
 COPY DuneFemMacros.cmake.dune-fem \
     /usr/local/src/dune/dune-fem/cmake/modules/DuneFemMacros.cmake
 

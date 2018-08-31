@@ -362,7 +362,11 @@ if test -d $PROJECTS/$PROJECT; then
     echo "Type Y to overwrite the old directory, N to abort. [Y/n] Y" 
     DELETE="Y"
   else
-    read -p "Type Y to overwrite the old directory, N to use old files. [Y/n] " DELETE
+    if test x$OVERWRITE == xno ; then
+     DELETE="N"
+    else
+     read -p "Type Y to overwrite the old directory, N to use old files. [Y/n] " DELETE
+    fi
   fi
   if test x$DELETE != xn -a x$DELETE != xN; then
     echo -e "$BRED Removing old files...$NORMAL"
@@ -474,7 +478,7 @@ An example options file might look like this:
 #use this options to configure and make if no other options are given
 CMAKE_FLAGS=" \\
 -DCMAKE_CXX_COMPILER=g++-4.9 \\
--DCMAKE_CXX_FLAGS='-Wall -pedantic' \\
+-DCMAKE_CXX_FLAGS='-Wall -pedantic -Wno-deprecated -ggdb' \\
 -DCMAKE_INSTALL_PREFIX=/install/path" #Force g++-4.9 and set compiler flags
 MAKE_FLAGS=install #Per default run make install instead of simply make
 
@@ -525,8 +529,8 @@ dune_enable_all_packages()
 M_DELIM
 fi
 cat>> "$PROJECTS/$PROJECT/CMakeLists.txt" << M_DELIM
-set(CMAKE_CXX_FLAGS "-I$SRC_DIR -I$LOCAL_INCLUDE -I$PWD $CXXFLAGS")
-set(CMAKE_CXX_FLAGS_DEBUG "-I$SRC_DIR -I$LOCAL_INCLUDE -I$PWD $CXXFLAGS")
+set(CMAKE_CXX_FLAGS "-Wno-deprecated -ggdb -I$SRC_DIR -I$LOCAL_INCLUDE -I$PWD $CXXFLAGS")
+set(CMAKE_CXX_FLAGS_DEBUG "-Wno-deprecated -ggdb -I$SRC_DIR -I$LOCAL_INCLUDE -I$PWD $CXXFLAGS")
 set(CMAKE_CXX_FLAGS_RELEASE "-I$SRC_DIR -I$LOCAL_INCLUDE -I$PWD $CXXFLAGS")
 add_subdirectory("src")
 add_subdirectory("dune")

@@ -24,7 +24,6 @@ RUN p='dumux';  \
     && touch  dumux/dumux/porousmediumflow/2pnc/newtoncontroller.hh \
     && touch dumux/dumux/porousmediumflow/mpnc/vtkoutputfield.hh \
     && touch dumux/dumux/freeflow/rans/twoeq/komega/models.hh
-
 RUN p='dumux';  \
     cd /usr/local/src/dune \
     && dune-common/bin/dunecontrol  --opts=dune-2.6.opts --only=$p configure; \
@@ -46,6 +45,10 @@ WORKDIR /home/dumux
 # End of impmx/dumux-2.12:base
 # Set up permissions for input/output directory
 # There is no systemd nor sysvinit on this image...
+ENV CXXFLAGS -I/opt/dune/include -std=c++17
+# CXXFLAGS is also set in set-user
+COPY set-user.sh /usr/local/src/
+RUN chmod a+rx /usr/local/src/set-user.sh
 CMD bash -c /usr/local/src/set-user.sh
 #CMD bash 
 
