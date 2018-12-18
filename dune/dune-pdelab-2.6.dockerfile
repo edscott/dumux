@@ -1,5 +1,5 @@
 # Docker file to build Dumux on archlinux base
-FROM impmx/dune-2.6:generic
+FROM impmx/dune-2.6:latest
 MAINTAINER Edscott Wilson Garcia
 # Update system package database
 

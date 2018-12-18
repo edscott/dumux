@@ -10,7 +10,7 @@ if  test x$USER = x; then
 else
     useradd -u $HOST_UID  $USER
     export PATH=$PATH:/opt/dune/bin
-    export CFLAGS="-I/opt/dune/include"
+    export CFLAGS="-I/opt/dune/include -I/usr/local/src/dune/dumux"
     export CXXFLAGS="$CFLAGS -std=c++17"
     if test x$ROOT = xyes; then
         su $USER;

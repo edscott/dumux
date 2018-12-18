@@ -12,20 +12,6 @@ RUN cd /usr/local/src/dune; \
  # compile 
 RUN p='dumux';  \
     cd /usr/local/src/dune \
-    && touch dumux/dumux/common/timesteppingscheme.hh \
-    && touch dumux/dumux/discretization/cellcentered/mpfa/computetransmissibility \
-    && touch dumux/dumux/discretization/staggered/connectivitymap.hh \
-    && touch dumux/dumux/discretization/staggered/elementfluxvariables.hh \
-    && touch dumux/dumux/discretization/staggered/globalfacevariables.hh \
-    && touch dumux/dumux/discretization/staggered/gridfluxvariables.hh \
-    && touch dumux/dumux/linear/linearsolverproperties.hh \
-    && touch dumux/dumux/linear/pardisobackend.hh \
-    && touch  dumux/dumux/porousmediumflow/2p/adaptionhelper.hh \
-    && touch  dumux/dumux/porousmediumflow/2pnc/newtoncontroller.hh \
-    && touch dumux/dumux/porousmediumflow/mpnc/vtkoutputfield.hh \
-    && touch dumux/dumux/freeflow/rans/twoeq/komega/models.hh
-RUN p='dumux';  \
-    cd /usr/local/src/dune \
     && dune-common/bin/dunecontrol  --opts=dune-2.6.opts --only=$p configure; \
     files=`find /usr/local/src/dune -name flags.make`; \
     for f in $files; \
@@ -34,9 +20,9 @@ RUN p='dumux';  \
     && dune-common/bin/dunecontrol  --opts=dune-2.6.opts --only=$p make install
 
 # Install to /opt
-# Some dumux files don't installed right (should be fixed by now, but just in case: rsync)
- 
-# Hacks:
+# Some dumux files don't installed right
+ENV CXXFLAGS -I/opt/dune/include -std=c++17 -I/usr/local/src/dune/dumux
+
 RUN rsync -av /usr/local/src/dune/dumux/dumux/common/ /opt/dune/include/dumux/common/
 RUN mkdir /home/dumux
 WORKDIR /home/dumux
@@ -45,7 +31,6 @@ WORKDIR /home/dumux
 # End of impmx/dumux-2.12:base
 # Set up permissions for input/output directory
 # There is no systemd nor sysvinit on this image...
-ENV CXXFLAGS -I/opt/dune/include -std=c++17
 # CXXFLAGS is also set in set-user
 COPY set-user.sh /usr/local/src/
 RUN chmod a+rx /usr/local/src/set-user.sh
