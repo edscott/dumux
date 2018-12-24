@@ -2,7 +2,6 @@
 #NOTE: before starting, export "-fPIC" in the variables CXXFLAGS, CMAKE_CXX_FLAGS and CMAKE_FLAGS
 #
 GXX_WARNING_OPTS=" \
-    -Wall \
     -Wunused \
     -Wmissing-include-dirs \
     -Wcast-align \

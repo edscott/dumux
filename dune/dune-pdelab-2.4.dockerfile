@@ -1,18 +1,6 @@
 # Docker file to build Dumux on archlinux base
 FROM impmx/dune-2.4:generic
 MAINTAINER Edscott Wilson Garcia
-# Update system package database
-# If building from behind a proxy, update proxy settings
-
-ENV http_proxy http://192.168.148.25:8082
-ENV https_proxy http://192.168.148.25:8082
-ENV ftp_proxy http://192.168.148.25:8082
-RUN echo "export http_proxy=$http_proxy" >> /etc/bash.bashrc && echo "export https_proxy=$https_proxy" >> /etc/bash.bashrc && echo "export ftp_proxy=$ftp_proxy" >> /etc/bash.bashrc
-# Set C and CXX flags for compiling 
-ENV CFLAGS -fPIC -Wno-deprecated
-ENV CXXFLAGS -fPIC -Wno-deprecated
-ENV CXX_FLAGS -fPIC -Wno-deprecated
-#RUN pacman -S --needed --noconfirm --noprogressbar doxygen 
 # PDElab
 RUN modules='dune-fem'; \
     cd /usr/local/src/dune; \
