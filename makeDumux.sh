@@ -1,6 +1,10 @@
 #!/bin/bash
 DUNE_RELEASE=2.4
 DUMUX_RELEASE=2.12
+cd /usr/local/src
+export CXXFLAGS="$CXXFLAGS -I/usr/include/tirpc"
+mkdir dune
+    cp dune/dune-2.4.opts /usr/local/src/dune/ && \
 echo "# Dune core modules:"; \
     modules='dune-common dune-geometry dune-grid dune-localfunctions dune-istl'; \
     cd /usr/local/src/dune; \
@@ -12,25 +16,25 @@ echo "# Dune core modules:"; \
         https://gitlab.dune-project.org/core/$module.git $module; \
     done; \
     echo "# Dune staging modules:"; 
-#    modules='dune-uggrid'; \
-#    cd /usr/local/src/dune; \
-#    for module in $modules; do \
-#        if test -d $module; then \
-#            rm -rf $module; \
-#        fi; \
-#        git clone -b releases/$DUNE_RELEASE \
-#        https://gitlab.dune-project.org/staging/$module.git $module; \
-#    done; \
-#    echo "# Dune extension modules: "; \
-#    modules='dune-alugrid'; \
-#    cd /usr/local/src/dune; \
-#    for module in $modules; do \
-#        if test -d $module; then \
-#            rm -rf $module; \
-#        fi; \
-#        git clone -b releases/$DUNE_RELEASE \
-#        https://gitlab.dune-project.org/extensions/$module.git $module; \
-#    done; \
+    modules='dune-uggrid'; \
+    cd /usr/local/src/dune; \
+    for module in $modules; do \
+        if test -d $module; then \
+            rm -rf $module; \
+        fi; \
+        git clone -b releases/$DUNE_RELEASE \
+        https://gitlab.dune-project.org/staging/$module.git $module; \
+    done; \
+    echo "# Dune extension modules: "; \
+    modules='dune-alugrid'; \
+    cd /usr/local/src/dune; \
+    for module in $modules; do \
+        if test -d $module; then \
+            rm -rf $module; \
+        fi; \
+        git clone -b releases/$DUNE_RELEASE \
+        https://gitlab.dune-project.org/extensions/$module.git $module; \
+    done; \
     echo "# Configure"; \
     echo "# Step by step for build tests:"; \
     p='dune-common'; \
@@ -117,22 +121,6 @@ p='dune-fem'; \
     done &&  \
     dune-common/bin/dunecontrol  --opts=dune-$DUNE_RELEASE.opts --only=$p make && \
     dune-common/bin/dunecontrol  --opts=dune-$DUNE_RELEASE.opts --only=$p make install
-modules='dune-functions'; \
-    cd /usr/local/src/dune; \
-    for module in $modules; do \
-        if test -d $module; then \
-            rm -rf $module; \
-        fi; \
-        git clone -b releases/$DUNE_RELEASE \
-        https://gitlab.dune-project.org/staging/$module.git $module; \
-    done;
-modules='dune-pdelab'; \
-    cd /usr/local/src/dune; \
-    for module in $modules; do \
-        if test -d $module; then rm -rf $module; fi; \
-        git clone -b releases/$DUNE_RELEASE \
-        https://gitlab.dune-project.org/pdelab/$module.git $module; \
-    done;
 modules='dune-typetree'; \
     cd /usr/local/src/dune; \
     for module in $modules; do \
@@ -152,6 +140,22 @@ p='dune-typetree'; \
     done &&  \
     dune-common/bin/dunecontrol  --opts=dune-$DUNE_RELEASE.opts --only=$p make && \
     dune-common/bin/dunecontrol  --opts=dune-$DUNE_RELEASE.opts --only=$p make install
+modules='dune-functions'; \
+    cd /usr/local/src/dune; \
+    for module in $modules; do \
+        if test -d $module; then \
+            rm -rf $module; \
+        fi; \
+        git clone -b releases/$DUNE_RELEASE \
+        https://gitlab.dune-project.org/staging/$module.git $module; \
+    done;
+modules='dune-pdelab'; \
+    cd /usr/local/src/dune; \
+    for module in $modules; do \
+        if test -d $module; then rm -rf $module; fi; \
+        git clone -b releases/$DUNE_RELEASE \
+        https://gitlab.dune-project.org/pdelab/$module.git $module; \
+    done;
 p='dune-functions'; \
     cd /usr/local/src/dune && \
     dune-common/bin/dunecontrol  --opts=dune-$DUNE_RELEASE.opts --only=$p configure; \

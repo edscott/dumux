@@ -2,7 +2,6 @@
 #NOTE: before starting, export "-fPIC" in the variables CXXFLAGS, CMAKE_CXX_FLAGS and CMAKE_FLAGS
 #
 GXX_WARNING_OPTS=" \
-    -Wunused \
     -Wmissing-include-dirs \
     -Wcast-align \
     -Wno-sign-compare \
@@ -10,6 +9,7 @@ GXX_WARNING_OPTS=" \
     -Wno-unused-parameter"
 
 # additional -W flags for g++ which will lead to many warnings
+#    -Wunused \
 #    -Wextra \
 #    -Wfloat-equal \
 #    -Wstrict-overflow \
@@ -18,21 +18,23 @@ GXX_OPTS=" \
     -fno-strict-aliasing \
     -fstrict-overflow \
     -fno-finite-math-only \
-    -O3 \
+    -O0 \
     -mtune=generic \
-    -I/usr/include/tirpc \
     -DNDEBUG=1"
 
 # configure flags
-CMAKE_FLAGS=" \
-  -DCMAKE_CXX_FLAGS=\"$GXX_WARNING_OPTS $GXX_OPTS\" \
-  -DUG_DIR=ug_installation_path  -I/usr/include/tirpc\
-  -fPIC -DCMAKE_CXX_COMPILER=g++  -DCMAKE_INSTALL_PREFIX='/opt/dune'"
+CMAKE_FLAGS=" -DCMAKE_Fortran_COMPILER=flang \
+  -DCMAKE_CXX_COMPILER=clang++  -DCMAKE_INSTALL_PREFIX='/opt/dune' \
+  -DCMAKE_CXX_FLAGS=\"-O0 -Wno-deprecated -stdlib=libc++\" \
+  -DCMAKE_EXE_LINKER_FLAGS='-lpthread -lstdthreads  -lc++'"
+#  -fPIC -DCMAKE_CXX_COMPILER=g++  -DCMAKE_INSTALL_PREFIX='/opt/dune'"
 
+#  -DCMAKE_CXX_FLAGS=\"$GXX_WARNING_OPTS $GXX_OPTS\" \
 
 # DUNE_CONTROL_PATH is where your source files are located:
 export DUNE_CONTROL_PATH=`pwd`
-CMAKE_CXX_FLAGS="-fPIC -I/usr/include/tirpc"
+#CMAKE_CXX_FLAGS="-fPIC"
 #CMAKE_FLAGS="-fPIC -DCMAKE_CXX_COMPILER=g++  -DCMAKE_INSTALL_PREFIX='/opt/dune'"
+
 
 
