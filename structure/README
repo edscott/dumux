@@ -1,0 +1,36 @@
+To build, just do a "make"
+Requirements, gtk3 (developer) and perl.
+
+Once built you will have two programs, the parser (parse7.pl) and the visualizer (structure).
+
+The parser's job is to create an xml file which will detail the way template headers are
+included, properties which are defined and typetags and their inheritance relationship.
+
+It is executed with "perl parser7.pl source.cc [problemTypeTag]"
+
+These three items, "Files", "properties" and "Typetags" are the top level elements in a
+gtk treeview. 
+
+As the "Files" treeview is expanded, you can see the order and from where each template 
+header is included. See Snapshot-1.
+
+When the "Properties" treeview is expanded, you can see all the properties which are 
+defined in the included template headers, their value and location. Snapshot-2.
+
+When the "Typetags" treeview is expanded (Snapshot-3), you can see all the defined typetags. If the optional
+problemTypeTag is specified, then the xml will use it to create an inheritance chain and you
+can see the main type tag with an "emblem-important" icon. First level inheritance have a 
+"emblem-default" icon, which by default is a green checkmark. Second level has a solid background
+checkmark, third level a simple checkmark and all the rest a blue dot. Whatever does not have
+an icon is of no use to the problemTypeTag specified. 
+
+This has helped me speed up looking for what properties are defined and their values, as
+well as to get a general idea of the structure of a Dumux aplication.
+
+If I continue with Dumux, I will try to get a Dumux-3.0 parser running, but at the moment the
+future is unclear.
+
+And as usual, the code is distributed with GNU version 3 license, hoping that it be of use to others, 
+but with no warranty nor suitability of use. 
+
+feb-21-2018
