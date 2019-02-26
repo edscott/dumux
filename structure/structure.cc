@@ -4,10 +4,12 @@
  */
 
 #define STRUCTURE_CC
+#define URIFILE "file://"
 #define PARSER "parse7.pl"
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
+#include <math.h>
 # undef TRACE
 # define TRACE(...)   { (void)0; }
 //# define TRACE(...)  fprintf(stderr, "TRACE> "); fprintf(stderr, __VA_ARGS__);
@@ -20,8 +22,22 @@
 # define WARN(...)  {fprintf(stderr, "warning> "); fprintf(stderr, __VA_ARGS__);}
 
 #include <sys/wait.h>
-gchar line[2048];
 
+
+enum {
+    TARGET_URI_LIST,
+    TARGETS
+};
+static GtkTargetList *targets=NULL;
+
+static GtkTargetEntry targetTable[] = {
+    {(gchar *)"text/uri-list", 0, TARGET_URI_LIST},
+};
+
+#define NUM_TARGETS (sizeof(targetTable)/sizeof(GtkTargetEntry))
+
+gchar line[2048];
+GList *selection_list=NULL;
 //static GtkIconTheme *icon_theme=NULL;
 GdkPixbuf *focusPixbuf;
 
@@ -33,6 +49,7 @@ enum {
     PROPERTY_VALUE,
     PROPERTY_SOURCE,
     TYPETAG_INHERITS,
+    REALPATH,
     COLUMNS
 };
 
@@ -41,6 +58,10 @@ GMarkupParseContext *typetagContext;
 GMarkupParseContext *propertyContext;
 GMarkupParseContext *fileContext;
 
+gchar *sourceFile;
+gchar *templates;
+gchar *extraIncludes=NULL;
+GtkTreeView *treeView;
 
 GtkTreeIter typeTagParent;
 GtkTreeIter propertyParent;
@@ -60,6 +81,7 @@ GtkWindow *mainWindow;
 GtkRequisition minimumSize_;
 GtkRequisition naturalSize_;
 GtkRequisition maximumSize_;
+        GList *selectionList;
 
 static void exitApp (GtkButton *widget,
            gpointer   user_data){
@@ -149,6 +171,221 @@ static gboolean delete_event (GtkWidget *widget,
         gtk_tree_view_insert_column (treeView,column,-1);
 
     }
+    static gchar *
+    getSelectionData(){
+        GList *selection_list = selectionList;
+        gchar *data = NULL;
+        
+        for(GList *tmp = selection_list; tmp && tmp->data; tmp = tmp->next) {
+            GtkTreePath *tpath = (GtkTreePath *)tmp->data;
+            gchar *path;
+            GtkTreeIter iter;
+            gtk_tree_model_get_iter (GTK_TREE_MODEL(treeStore), &iter, tpath);
+            gtk_tree_model_get (GTK_TREE_MODEL(treeStore), &iter, REALPATH, &path, -1);
+            if (!data) data = g_strconcat(URIFILE, path, "\n", NULL);
+            else {
+                gchar *e = g_strconcat(data, URIFILE, path, "\n", NULL);
+                g_free(data);
+                data = e;
+            }
+            TRACE("getSelectionData(): append: %s -> \"%s\"\n", path, data);
+            g_free(path);
+        }
+        return data;
+    }
+    static void
+    DragDataSend (GtkWidget * widget,
+                       GdkDragContext * context, 
+                       GtkSelectionData * selection_data, 
+                       guint info, 
+                       guint time,
+                       gpointer data) {
+        TRACE("signal_drag_data_send\n");
+        /* prepare data for the receiver */
+        if (info != TARGET_URI_LIST) {
+            ERROR("signal_drag_data_send: invalid target");
+        }
+        TRACE( ">>> DND send, TARGET_URI_LIST\n"); 
+        gchar *dndData = NULL;
+        dndData = getSelectionData();
+
+
+        if (dndData){
+            gtk_selection_data_set (selection_data, 
+                gtk_selection_data_get_selection(selection_data),
+                8, (const guchar *)dndData, strlen(dndData)+1);
+        }
+                    
+    }
+
+    // sender:
+    static void
+    DragBegin (GtkWidget * widget, GdkDragContext * context, gpointer data) {
+        TRACE("signal_drag_begin\n");
+        auto treeModel = GTK_TREE_MODEL(treeStore);
+        auto selection = gtk_tree_view_get_selection (treeView);
+        if (selectionList){
+            g_list_free_full (selectionList, (GDestroyNotify) gtk_tree_path_free);
+            selectionList = NULL;
+        }
+        selectionList = gtk_tree_selection_get_selected_rows (selection, &treeModel);
+        //GdkPixbuf *pixbuf = Pixbuf<Type>::get_pixbuf("edit-copy", -48);
+        //gtk_drag_set_icon_pixbuf (context, pixbuf,10,10);
+    }
+static void
+createSourceTargetList (GtkWidget *widget) {
+    TRACE("createSourceTargetList..\n");
+    gtk_drag_source_set (widget,
+                 (GdkModifierType) 0, //GdkModifierType start_button_mask,
+                 targetTable,
+                 NUM_TARGETS,
+                 (GdkDragAction)
+                                ((gint)GDK_ACTION_MOVE|
+                                 (gint)GDK_ACTION_COPY|
+                                 (gint)GDK_ACTION_LINK));
+    return;
+}
+    static GtkTreePath * 
+    getTpath(GdkEventButton  *event){
+        GtkTreePath *tpath = NULL;
+        if (!gtk_tree_view_get_path_at_pos (treeView, event->x, event->y, &tpath, NULL, NULL, NULL)){
+           tpath = NULL;
+        }
+        return tpath;
+    }
+gboolean dragOn_ = FALSE;
+gint buttonPressX=-1;
+gint buttonPressY=-1;
+    static gboolean
+    buttonPress (GtkWidget *widget,
+                   GdkEventButton  *event,
+                   gpointer   data)
+    {
+        TRACE("buttonpress\n");
+        buttonPressX = buttonPressY = -1;
+        dragOn_ = FALSE;
+
+        GtkTreePath *tpath = NULL;
+        if (event->button == 1) {
+            gint mode = 0;
+        TRACE("buttonpress 1\n");
+            tpath = getTpath(event);
+            if (tpath == NULL){ 
+                return FALSE;
+            } else {
+                if (selectionList){
+                    g_list_free_full (selectionList, (GDestroyNotify) gtk_tree_path_free);
+                    selectionList = NULL;
+                } else TRACE("no selection list\n");
+                TRACE("button press %d mode %d\n", event->button, mode);
+		buttonPressX = event->x;
+		buttonPressY = event->y;
+		gtk_tree_path_free(tpath);
+            }
+
+            return FALSE;
+        }
+        return FALSE;
+
+    }
+
+    static gboolean
+    motionNotifyEvent (GtkWidget *widget,
+                   GdkEvent  *ev,
+                   gpointer   data)
+    {
+        auto e = (GdkEventMotion *)ev;
+        auto event = (GdkEventButton  *)ev;
+
+        if (buttonPressX >= 0 && buttonPressY >= 0){
+	    TRACE("buttonPressX >= 0 && buttonPressY >= 0\n");
+	    if (sqrt(pow(e->x - buttonPressX,2) + pow(e->y - buttonPressY, 2)) > 10){
+                auto selection = gtk_tree_view_get_selection (treeView);
+                auto treeModel = GTK_TREE_MODEL(treeStore);
+                // free selection list
+                if (!selectionList) selectionList = gtk_tree_selection_get_selected_rows (selection, &treeModel);
+                if (selectionList==NULL) {
+                    return FALSE;
+                }
+
+                auto tpath = (GtkTreePath *)selectionList->data;
+                GtkTreeIter iter;
+                gtk_tree_model_get_iter (GTK_TREE_MODEL(treeStore), &iter, tpath);
+                gchar *realpath;
+                gtk_tree_model_get (GTK_TREE_MODEL(treeStore), &iter, REALPATH, &realpath, -1);
+                TRACE("realpath=%s\n", realpath);
+                if (realpath){
+                    g_free(realpath);
+                    // start DnD (multiple selection)
+                    TRACE("dragOn_ = TRUE\n");
+                    dragOn_ = TRUE;
+
+                    if (!targets) targets= gtk_target_list_new (targetTable,TARGETS);
+
+                    //context =
+                        gtk_drag_begin_with_coordinates (GTK_WIDGET(mainWindow),
+                                 targets,
+                                 (GdkDragAction)(((gint)GDK_ACTION_MOVE)|
+                       ((gint)GDK_ACTION_COPY)|
+                       ((gint)GDK_ACTION_LINK)), //GdkDragAction actions,
+                                 1, //gint button,
+                                 (GdkEvent *)event, //GdkEvent *event,
+                                 event->x, event->y);
+                }
+                             
+		buttonPressX = buttonPressY = -1;
+                //g_object_ref(G_OBJECT(context)); 
+	    }
+        }
+
+
+
+    
+        return FALSE;
+    }
+    static gboolean
+    buttonRelease (GtkWidget *widget,
+                   GdkEventButton  *event,
+                   gpointer   data)
+    {
+        TRACE("buttonRelease\n");
+        //GdkEventButton *event_button = (GdkEventButton *)event;
+        if (!dragOn_){
+	    GtkTreePath *tpath;
+
+	    //Cancel DnD prequel.
+	    buttonPressX = buttonPressY = -1;
+	    dragOn_ = FALSE;
+
+	    /*if (isTreeView){
+		auto selection = 
+		    gtk_tree_view_get_selection (view->treeView());
+		gtk_tree_view_get_path_at_pos (view->treeView(), 
+				   event->x, event->y, &tpath, NULL,  NULL, NULL);
+		if (tpath) {
+		    // unselect everything
+		    gtk_tree_selection_unselect_all (selection);
+		    // reselect item to activate
+		    gtk_tree_selection_select_path (selection, tpath);
+		}
+	    } 
+	    if (tpath) {
+		TRACE("Here we do a call to activate item.\n");
+		for (auto popup=popUpArray; popup && *popup; popup++){
+		    g_object_set_data(G_OBJECT(*popup), "baseModel", (void *)view);
+		    g_object_set_data(G_OBJECT(*popup), "view", (void *)view);
+		}
+		BaseSignals<Type>::activate(tpath, data);
+		gtk_tree_path_free(tpath);
+	    }*/
+	    return TRUE;
+        }
+
+	buttonPressX = buttonPressY = -1;
+        dragOn_ = FALSE;
+	
+        return FALSE;
+    }
 
 
 static GtkWindow *
@@ -167,14 +404,19 @@ createWindow(void){
     auto bottombox = GTK_BOX(gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 1));
     gtk_box_pack_start(vbox, GTK_WIDGET(topbox), FALSE, FALSE, 3);
     gtk_box_pack_start(vbox, GTK_WIDGET(bottombox), TRUE, TRUE, 3);
-    auto label = GTK_LABEL(gtk_label_new(""));
-    gtk_label_set_markup(label, "<span size=\"larger\" color=\"blue\">Structure</span>");
-    gtk_box_pack_start(topbox, GTK_WIDGET(label), FALSE, FALSE, 3);
+    auto label1 = GTK_LABEL(gtk_label_new(""));
+    auto label2 = GTK_LABEL(gtk_label_new(""));
+    auto markup1 = g_strdup_printf("<span size=\"larger\" color=\"blue\">Structure: %s    </span>", sourceFile, templates);
+    auto markup2 = g_strdup_printf("<span size=\"small\" color=\"red\">Templates: %s%s</span>", templates, extraIncludes?extraIncludes:"");
+    gtk_label_set_markup(label1, markup1);
+    gtk_label_set_markup(label2, markup2);
+    gtk_box_pack_start(topbox, GTK_WIDGET(label1), FALSE, FALSE, 3);
+    gtk_box_pack_start(topbox, GTK_WIDGET(label2), FALSE, FALSE, 3);
     auto exit = gtk_button_new_with_label("Exit");
     gtk_box_pack_end(topbox, GTK_WIDGET(exit), FALSE, FALSE, 3);
     g_signal_connect (G_OBJECT (exit), "clicked", G_CALLBACK (exitApp), NULL);
 
-    auto treeView = GTK_TREE_VIEW(gtk_tree_view_new_with_model(GTK_TREE_MODEL(treeStore)));
+    treeView = GTK_TREE_VIEW(gtk_tree_view_new_with_model(GTK_TREE_MODEL(treeStore)));
     //gtk_tree_view_set_show_expanders(treeView, TRUE);
     gtk_tree_view_set_headers_visible(treeView, TRUE);
         appendColumnPixbuf(treeView, ICON);
@@ -192,12 +434,31 @@ createWindow(void){
 
     gtk_container_add(GTK_CONTAINER(scrolledWindow), GTK_WIDGET(treeView));
 
+        // source widget
+        g_signal_connect (G_OBJECT (mainWindow), 
+             "drag-begin", G_CALLBACK(DragBegin),
+             mainWindow);
+        
+        g_signal_connect (G_OBJECT (mainWindow), 
+             "drag-data-get", G_CALLBACK(DragDataSend), 
+             mainWindow);
+         g_signal_connect (mainWindow, "button-release-event",
+             G_CALLBACK(buttonRelease), 
+             mainWindow);
+         g_signal_connect (treeView, "button-press-event",
+             G_CALLBACK(buttonPress), 
+             mainWindow);
+        
+        // source widget
+        g_signal_connect (treeView, "motion-notify-event", 
+            G_CALLBACK (motionNotifyEvent), 
+            mainWindow);
 
     setDefaultSize();
     gtk_window_present (mainWindow);
     while (gtk_events_pending()) gtk_main_iteration();
 
-
+    createSourceTargetList(GTK_WIDGET(mainWindow));
 
     return mainWindow;
 
@@ -251,12 +512,14 @@ startProperty (GMarkupParseContext * context,
             g_free(g);
         }
         if (validValueIter && strcmp(*name, "source")==0) {
-            //gtk_tree_store_append(treeStore, &sourceiter, &valueiter);
             auto g = g_strdup_printf("%s", *value);
-            //gtk_tree_store_set(treeStore, &sourceiter,
             gtk_tree_store_set(treeStore, &valueiter,
                PROPERTY_SOURCE, g, -1);
             g_free(g);
+        }
+        if (strcmp(*name, "realpath")==0) {
+            gtk_tree_store_set(treeStore, &nameiter, REALPATH, *value, -1);
+            gtk_tree_store_set(treeStore, &valueiter, REALPATH, *value, -1);
         }
 
     }
@@ -340,6 +603,9 @@ startTypeTag (GMarkupParseContext * context,
             gtk_tree_store_set(treeStore, &iter, ICON2, getEmblem((*value)[0]), -1);
             TRACE( "focus %s=%s\n", element_name, *value); 
         }
+        if (strcmp(*name, "realpath")==0) {
+            gtk_tree_store_set(treeStore, &iter, REALPATH, *value, -1);
+        }
    }
     if (tmpParent) gtk_tree_iter_free(tmpParent);
     tmpParent = gtk_tree_iter_copy(&iter);
@@ -392,6 +658,9 @@ startFiles(GMarkupParseContext * context,
             g_free(g);
             g_free(k);
         }
+        if (strcmp(*name, "realpath")==0) {
+            gtk_tree_store_set(treeStore, &fileChild, REALPATH, *value, -1);
+        }
         
     }
 
@@ -406,10 +675,19 @@ mainStart (GMarkupParseContext * context,
 	       gpointer data, 
 	       GError ** error) 
 {
-    const gchar *name = NULL;
-    const gchar *icon = NULL;
     TRACE ("start -> %s\n",element_name); 
 
+    if(strcmp (element_name, "structure")==0 ){
+        const gchar **name = attribute_names;
+        const gchar **value = attribute_values;
+        for (; name && *name; name++, value++){
+            if (strcmp(*name, "source")==0)sourceFile = g_strdup(*value);
+            if (strcmp(*name, "templates")==0)templates = g_strdup(*value);
+            if (strcmp(*name, "include")==0)
+                extraIncludes = g_strdup_printf("\nExtra include: %s",*value);
+        }
+        return;
+    }
     if(strcmp (element_name, "property")==0 ){
         // Simple one line elements:
         startProperty (propertyContext,
@@ -490,7 +768,7 @@ parseXML (const gchar * file) {
 
     input = fopen (file, "r");
     if(!input) {
-        DBG ("cannot open %s\n", file);
+        TRACE ("cannot open %s\n", file);
         return;
     }
     while(!feof (input) && fgets (line, 2048, input)) {
@@ -521,27 +799,6 @@ parseXML (const gchar * file) {
 
 int
 main (int argc, char *argv[]) {
- /*   DBG("argv[0]=%s\n", argv[0]);
-    auto dirname = g_path_get_dirname(argv[0]);
-    auto parser = g_strconcat(dirname, G_DIR_SEPARATOR_S, PARSER, NULL);
-        char *arg[16];
-        int i=0;
-        arg[i++] =  g_strdup(parser);
-        arg[i++] = argv[1];
-        if (argv[2]) arg[i++] = argv[2];
-        argv[i] = NULL;
-        DBG("child process: %s %s \"%s\"\n", arg[0], arg[1], arg[2]); 
-    auto pid = fork();
-    if (pid){
-        int status;
-        DBG("Waiting for process %d\n", pid);
-        wait(&status);
-        DBG("Wait for process %d complete\n", pid);
-    } else {
-        execvp(arg[0], arg);
-        _exit(123);
-    }*/
-    //exit(1);
 
     treeStore = gtk_tree_store_new(COLUMNS, 
 	    GDK_TYPE_PIXBUF, // icon in treeView display
@@ -550,7 +807,8 @@ main (int argc, char *argv[]) {
 	    G_TYPE_STRING,   // property name
 	    G_TYPE_STRING,   // property value
 	    G_TYPE_STRING,   // property source
-	    G_TYPE_STRING);   // property typetag
+	    G_TYPE_STRING,   // property typetag
+	    G_TYPE_STRING);   // realpath (for DND)
     gtk_tree_store_append(treeStore, &fileParent, NULL);
     gtk_tree_store_set(treeStore, &fileParent, TYPEDEF_NAME, "Files", -1);
     auto tpath = gtk_tree_model_get_path(GTK_TREE_MODEL(treeStore), &fileParent);
