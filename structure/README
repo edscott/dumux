@@ -1,18 +1,26 @@
+Update:
+parser8.pl is deprecated
+parser9.pl: 
+ *fixes bug in inheritance determination (dirty array)
+ *adds linenumbers to the source where TypeTag is defined
+ *sorts TypeTags in inheritance order
+ *does not show TypeTags which are not inherited
+
 Update: 
 parser7.pl is deprecated.
-parser8.pl will automatically determine TypeTag for the problem, if it is
-hard coded into the call to Dumux::start(). If it is set by means of a preprocessor 
-directive in the CMakeLists.txt, then it can be set with the second argument to 
-parse8.pl (the first argument being the file from which to start the xml construction).
-parser8.pl will automatically determine the path for Dumux templates if the source 
-code is located in the conventional "test" way. If not, then the path to the installed
-Dumux templated to be used should be specified in the first lines of parser8.pl.
-
-structure.cc has a more descriptive window title and allows drag and drop from the 
-treeview to an editor to quickly open the file from which the row was constructed. 
-This greatly speeds up browsing the contents of the involved templates. Please note 
-that programs linked with gtk+ < 3.16 are not entirely compatible with those linked with 
-gtk+ >= 3.16 with regard to DnD. Gvim works fine for me. YMMV.
+parser8.pl:
+ *automatically determine TypeTag for the problem, if it is
+  hard coded into the call to Dumux::start(). If it is set by means of a preprocessor 
+  directive in the CMakeLists.txt, then it can be set with the second argument to 
+  parse8.pl (the first argument being the file from which to start the xml construction).
+ *automatically determine the path for Dumux templates if the source 
+  code is located in the conventional "test" way. If not, then the path to the installed
+  Dumux templated to be used should be specified in the first lines of parser8.pl.
+ *structure.cc has a more descriptive window title and allows drag and drop from the 
+  treeview to an editor to quickly open the file from which the row was constructed. 
+  This greatly speeds up browsing the contents of the involved templates. Please note 
+  that programs linked with gtk+ < 3.16 are not entirely compatible with those linked with 
+  gtk+ >= 3.16 with regard to DnD. Gvim works fine for me. YMMV.
 
 
 
