@@ -5,6 +5,8 @@ parser9.pl:
  *adds linenumbers to the source where TypeTag is defined
  *sorts TypeTags in inheritance order
  *does not show TypeTags which are not inherited
+ *defined properties with no value (undefined) are no longer included in xml
+ *add linenumbers to the source where property is assigned value
 
 Update: 
 parser7.pl is deprecated.

@@ -43,8 +43,10 @@ $currentDir = `pwd`; chop $currentDir;
 %propertyValues;
 %propertyTypeTag;
 %propertySource;
+%propertyLineNumber;
 %inherits;
 %focus;
+$referenceLineCount;
 
 $debug=0;
 $verbose=0;
@@ -282,7 +284,12 @@ sub printTypeTagsXML{
         else {undef $focusItem;}
         my $realpath = &realpath($oFile);
         if ($focusItem){
-            print OUTPUT " <typetag name=\"$typetag\" inherits=\"$inheritString\" source=\"$oFile:$typeTagLineNumber{$typetag}\" realpath=\"$realpath\" $focusItem>\n";
+            my $spaces = "";
+            my $i;
+            for ($i=0; $i<$focus{$typetag}; $i++){
+                $spaces .= "   ";
+            }
+            print OUTPUT " <typetag name=\"$spaces$typetag\" inherits=\"$inheritString\" source=\"$oFile:$typeTagLineNumber{$typetag}\" realpath=\"$realpath\" $focusItem>\n";
             my @akeys = keys(%propertyTypeTag);
             my @skeys = sort @akeys;
             my $property;
@@ -295,7 +302,8 @@ sub printTypeTagsXML{
                     $oFile = $propertySource{$property};
                     $oFile =~ s/$installationPath\///;
                     if ($includePath){$oFile =~ s/$includePath\///;}
-                    print OUTPUT "  <property name=\"$property\" value=\"$propertyValues{$property}\" source=\"$oFile:$typeTagLineNumber{$typetag}\" realpath=\"$realpath\"/>\n";
+                    $realpath = &realpath($oFile);
+                    print OUTPUT "  <property name=\"$property\" value=\"$propertyValues{$property}\" source=\"$oFile:$propertyLineNumber{$property}\" realpath=\"$realpath\"/>\n";
                 }
             }
             print OUTPUT " </typetag>\n";
@@ -310,7 +318,8 @@ sub printPropertiesXML{
     my @properties = sort @keys;
     foreach $property (@properties){
         $typetag = $propertyTypeTag{$property};
-        $source = "$propertySource{$property}";
+        $source = $propertySource{$property};
+        my $lineNumber = $propertyLineNumber{$property};
         $oFile = $source;
         $oFile =~ s/$installationPath\///;
         if ($includePath){$oFile =~ s/$includePath\///;}
@@ -318,8 +327,9 @@ sub printPropertiesXML{
         $value =~ s/</&lt;/g;
         $value =~ s/>/&gt;/g;
         my $realpath = &realpath($oFile);
-
-        print OUTPUT " <property name=\"$property\" typetag=\"$typetag\" value=\"$value\" source=\"$oFile\" realpath=\"$realpath\"/>\n";
+        if ($value ne "undefined"){
+            print OUTPUT " <property name=\"$property\" typetag=\"$typetag\" value=\"$value\" source=\"$oFile:$lineNumber\" realpath=\"$realpath\"/>\n";
+        }
 #        print " <property name=\"$property\">\n";
 #        print "  <typetag>$typetag</typetag>\n";
 #        print "  <value>$value</value>\n";
@@ -356,8 +366,9 @@ sub getFileTypeTags {
     $comment = 0;
     my @fileTypeTags;
     $i=0;
+    $referenceLineCount=0;
     while (<INPUT>){
-        $lineNumber++;
+        $referenceLineCount++;
         s/^\s+//;
         if (/^#/ or /^\/\//){next}
         if (/\/\*/) {$comment = 1}
@@ -368,7 +379,7 @@ sub getFileTypeTags {
             $typeTag = &getName($line);
 #print "typetag=$typeTag\n";
             if ($typeTagFiles{$typeTag}) {
-                print("<!-- *** Warning: TypeTag \"$typeTag\"redefined at file $file:$lineNumber --> \n");
+                print("<!-- *** Warning: TypeTag \"$typeTag\"redefined at file $file:$referenceLineCount --> \n");
 #                exit(1);
             } else {
                 $typeTagFiles{$typeTag} = $file; 
@@ -404,9 +415,9 @@ sub getTypeInherits{
 
     open INPUT, "$path" or die "Unable to open $path";
     $comment = 0;
-    my $lineNumber=0;
+    $referenceLineCount=0;
     while (<INPUT>){
-        $lineNumber++;
+        $referenceLineCount++;
         s/^\s+//;
         if (/^#/ or /^\/\//){next}
         if (/\/\*/) {$comment = 1}
@@ -419,7 +430,7 @@ sub getTypeInherits{
                 my @d = &getInherits($typeTag, $line);
                 foreach $a (@d){
                     if ($debug)
-                      {print "get inherits $typeTag --> $a ($file:$lineNumber\n"}
+                      {print "get inherits $typeTag --> $a ($file:$referenceLineCount\n"}
                     push(@{ $inherits{"$typeTag"} }, "$a");
                 }
            }
@@ -502,7 +513,9 @@ sub getFileProperties{
     my @properties;
     my $i=0;
     $comment = 0;
+    $referenceLineCount=0;
     while (<INPUT>){
+        $referenceLineCount++;
         s/^\s+//;
         if (/^#/ or /^\/\//){next}
         if (/\/\*/) {$comment = 1}
@@ -512,6 +525,7 @@ sub getFileProperties{
             my $line = &getFullLine;
             $prop = &getName($line);
             $properties[$i++] = $prop;
+            $propertyLineNumber{$prop}=$referenceLineCount;
         }
     }
     close INPUT;
@@ -545,7 +559,9 @@ sub getPropertyValues {
 
     open INPUT, "$path" or die "Unable to open $path";
     $comment = 0;
+    $referenceLineCount=0;
     while (<INPUT>){
+        $referenceLineCount++;
         s/^\s+//;
         if (/^#/ or /^\/\//){next}
         if (/\/\*/) {$comment = 1}
@@ -573,6 +589,7 @@ if ($debug){
             $propertyValues{$property} = $propValue;
             $propertyTypeTag{$property} = $typetag;
             $propertySource{$property} = $file;
+            $propertyLineNumber{$property} = $referenceLineCount;
 
             if ($verbose) {print("PROP ($propertySource{$property}) $propertyTypeTag{$property}:$property = $propertyValues{$property}\n")}
         }
@@ -611,6 +628,7 @@ sub getFullLine{
 loop:
     if (not $line =~ m/;/g){
         my $nextLine = <INPUT>;
+        $referenceLineCount++;
         $nextLine =~ s/\n//g;
         $nextLine =~ s/^\s+//;
         $line = $line . $nextLine;
