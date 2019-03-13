@@ -383,7 +383,7 @@ sub getFileTypeTags {
 #                exit(1);
             } else {
                 $typeTagFiles{$typeTag} = $file; 
-                $typeTagLineNumber{$typeTag} = $lineNumber; 
+                $typeTagLineNumber{$typeTag} = $referenceLineCount; 
             }
 #            $fileTypeTags[$i++] = $typeTag;
             push @fileTypeTags, $typeTag;
