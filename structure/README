@@ -1,4 +1,26 @@
 Update:
+Parser9.pl is deprecated. 
+Parser11.pl is now complete.
+
+ 
+Basically the perl parser creates an XML structure with a structural representation of typetags and properties. This is a standalone command line script. The output in XML can easily be translated to a html format for viewing in any browser. Nonetheless, we have found it easier to create a simple gtk+ app to show the tree structure and allow navigating into any of the files. 
+
+The gtk+ app (structure.cc) has also been updated so that it is now possible to generate the xml document directly from the app. Screenshots are referred in my previous post.
+ 
+Structure.cc shows a treeview with three main branches:
+1- Files: Here we can find the structure in which the compiler will include files. Drag and drop is enabled so that any row can be dragged to an editor (gvim, for example) and the corresponding file will be opened.
+2- Properties: Here we can find a list of all properties which have been found in the above include files. Expanding each property row will show the value of the property and the file:line_number in which it was defined. Drag an drop is enabled as above.
+3- TypeTags: Here we can find a list of all the typetags (structures in Dumux::Properties::TTag) which were found. Icons decorating the typetag indicate the main problem typetag and how "close" they are. On expanding any typetag, we can see the properties which are defined in the typetag. The property line has the same format as in (2). This allows us to filter out all the defined properties which do not have effect on the problem being viewed.
+
+The current "stable" version of the parser (parse11.pl) and structure.cc, along with an associated Makefile can be downloaded from https://github.com/edscott/dumux/tree/master/structure
+
+The "unstable" version where I test changes is also at github, but as part of the xffm file/terminal manager, at https://github.com/edscott/xffm/tree/master/structure and that is where log data can be viewed if this is of any interest. In this development tree you can find the CMakeLists.txt we actually use.
+
+As usual, the code is GNU-3.0 license, hoping that it will be of use to others, but with no warranty nor suitability of use.
+
+
+
+Update:
 parser8.pl is deprecated
 parser9.pl: 
  *fixes bug in inheritance determination (dirty array)

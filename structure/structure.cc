@@ -5,7 +5,7 @@
 
 #define STRUCTURE_CC
 #define URIFILE "file://"
-#define PARSER "parse7.pl"
+#define PERL_PARSER "parse11.pl";
 #include <glib.h>
 #include <gtk/gtk.h>
 #include <gdk/gdkx.h>
@@ -22,8 +22,7 @@
 # define WARN(...)  {fprintf(stderr, "warning> "); fprintf(stderr, __VA_ARGS__);}
 
 #include <sys/wait.h>
-
-
+#include <iostream>
 enum {
     TARGET_URI_LIST,
     TARGETS
@@ -659,6 +658,7 @@ startFiles(GMarkupParseContext * context,
             g_free(k);
         }
         if (strcmp(*name, "realpath")==0) {
+            gtk_tree_store_set(treeStore, &fileChild, PROPERTY_SOURCE, *value, -1);
             gtk_tree_store_set(treeStore, &fileChild, REALPATH, *value, -1);
         }
         
@@ -684,7 +684,7 @@ mainStart (GMarkupParseContext * context,
             if (strcmp(*name, "source")==0)sourceFile = g_strdup(*value);
             if (strcmp(*name, "templates")==0)templates = g_strdup(*value);
             if (strcmp(*name, "include")==0)
-                extraIncludes = g_strdup_printf("\nExtra include: %s",*value);
+                extraIncludes = g_strdup_printf("\nInclude: %s",*value);
         }
         return;
     }
@@ -795,11 +795,122 @@ parseXML (const gchar * file) {
     g_markup_parse_context_free (fileContext);
     g_markup_parse_context_free (mainContext);
 }
+namespace xf {
+template <class Type>
+class Structure {
+    gchar *xmlFile_;
+    gchar *parserPath_;
+public:
+    ~Structure(void){
+        g_free(xmlFile_);
+        g_free(parserPath_);
+    }
+    Structure(gchar **argv){
+        xmlFile_ = g_strdup("structure.xml");
+	if (argv[1] == NULL){
+	    if (!g_file_test("structure.xml", G_FILE_TEST_IS_REGULAR)){
+		std::cerr<<"Cannot find file \"structure.xml\" to open\n";
+		throw 5;
+	    }
+	    return;
+	}
+	if (!checkArguments(argv)){
+	    std::cerr<<"Usage: "<<argv[0]<<" <target file> \n    --templates=<systemwide templates> \n    --include=<override includes> \n    [--problemTypeTag=<DuMuX problem TypeTag>]\n";
+	    throw 6;
+	}
+	createStructureXML(argv);
+    }
 
+    const gchar *xmlFile(void){return xmlFile_;}
+private:
+
+    gboolean checkDir(gchar **argv, const gchar *a){
+	// required directory
+	for (auto p=argv+1; p && *p; p++){
+	    if (strstr(*p, a)){
+		auto g = g_strsplit(*p, "=",2);
+		if (g_file_test(g[1], G_FILE_TEST_IS_DIR)){
+		    return TRUE;
+		} else std::cerr<<g[1]<<" is not a directory\n";
+	    }
+	}
+	std::cerr<<"Missing argument: "<<a<<"\n";
+	return FALSE;
+    }
+
+    gboolean checkArguments(gchar **argv){
+	// source file
+	gboolean OK=FALSE;
+	for (auto p=argv+1; p && *p; p++){
+	    if (g_file_test(*p, G_FILE_TEST_IS_REGULAR)){
+		OK=TRUE;
+		break;
+	    }
+	}
+	if (!OK) return FALSE;
+	// required arguments
+	if (!checkDir(argv, "--templates=")) return FALSE;
+	if (!checkDir(argv, "--include=")) return FALSE;
+	return TRUE;
+    }
+
+    void createStructureXML(gchar **argv){
+        auto parser=PERL_PARSER;
+        parserPath_ = g_find_program_in_path(parser);
+        if (!parserPath_){
+            std::cerr<<"Cannot find "<<parser<<" in path\n";
+            throw 1;
+        }
+        // Get source file, template directory and include directory options
+        auto sourceFile = getSourceFile(argv);
+        int status;
+        auto pid = fork();
+        if (pid) wait(&status);
+        else {
+            gchar *a[10];
+            int i=0;
+            a[i++] = (gchar *)"/usr/bin/perl";
+            a[i++] = (gchar *)parserPath_;
+            a[i++] = (gchar *)sourceFile;
+            for (auto p=argv+1; p && *p && i<9; p++){
+                if (strstr(*p, "--"))a[i++] = (gchar *)*p;
+            }
+            a[i] = NULL;
+            for (auto j=0; j<i; j++)fprintf(stderr,"%s ", a[j]); fprintf(stderr,"\n");
+            execvp("/usr/bin/perl", a);
+        }
+        fprintf(stderr, "OK\n");
+   }
+
+   const gchar *getSourceFile(gchar **argv){
+        const gchar *retval=NULL;
+        for (auto p=argv+1; p && *p; p++){
+            if (strstr(*p, "--"))continue;
+            if (!g_file_test(*p, G_FILE_TEST_IS_REGULAR)){
+                std::cerr<< *p << "is not a regular file\n";
+                throw 2;
+            }
+            retval = *p;
+        }
+        if (!retval) throw 3;
+        return retval;
+    }
+
+};
+}
 
 int
 main (int argc, char *argv[]) {
-
+    // If no argument is specified, then the program will try to read
+    // structure.xml from the current directory
+    // 
+    xf::Structure<double>  *structure;
+    try {
+        structure = new(xf::Structure<double>)(argv);
+    } catch (int e){
+        exit(1);
+    }
+ 
     treeStore = gtk_tree_store_new(COLUMNS, 
 	    GDK_TYPE_PIXBUF, // icon in treeView display
 	    GDK_TYPE_PIXBUF, // icon in treeView display
@@ -821,7 +932,8 @@ main (int argc, char *argv[]) {
     gtk_tree_store_set(treeStore, &typeTagParent, TYPEDEF_NAME, "TypeTags", -1);
     gtk_init(&argc, &argv);
 
-    parseXML(argv[1]?argv[1]:"structure.xml");
+//    parseXML(argv[1]?argv[1]:"structure.xml");
+    parseXML(structure->xmlFile());
 	
     
     createWindow();
