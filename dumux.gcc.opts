@@ -1,0 +1,35 @@
+#/bin/sh
+#NOTE: before starting, export "-fPIC" in the variables CXXFLAGS, CMAKE_CXX_FLAGS and CMAKE_FLAGS
+#
+GXX_WARNING_OPTS=" \
+    -Wmissing-include-dirs \
+    -Wcast-align \
+    -Wno-sign-compare \
+    -Wno-deprecated \
+    -Wno-unused-parameter"
+
+# additional -W flags for g++ which will lead to many warnings
+#    -Wunused \
+#    -Wextra \
+#    -Wfloat-equal \
+#    -Wstrict-overflow \
+
+GXX_OPTS=" \
+    -fno-strict-aliasing \
+    -fstrict-overflow \
+    -fno-finite-math-only \
+    -O3 \
+    -DNDEBUG=1"
+
+# configure flags
+CMAKE_FLAGS=" -DCMAKE_Fortran_COMPILER=gfortran \
+  -DCMAKE_CXX_COMPILER=g++  -DCMAKE_INSTALL_PREFIX='/opt/dune' \
+  -DCMAKE_CXX_FLAGS=\"-O3 -Wno-deprecated -std=c++17\" \
+  -DCMAKE_EXE_LINKER_FLAGS='-lpthread'"
+
+
+# DUNE_CONTROL_PATH is where your source files are located:
+export DUNE_CONTROL_PATH=`pwd`
+
+
+
