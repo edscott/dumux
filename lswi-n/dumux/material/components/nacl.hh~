@@ -1,0 +1,29 @@
+#ifndef DUMUX_NACL_HH
+#define DUMUX_NACL_HH
+
+#include <dumux/common/exceptions.hh>
+#include <dumux/material/components/coonent.hh>
+
+#include <cmath>
+#include <iostream>
+
+
+namespace Dumux
+{
+namespace Components {
+template <class Scalar>
+class NaCl : public Base<Scalar, NaCl<Scalar> >
+{
+public:
+    static std::string name() { return "NaCl"; }
+    static Scalar molarMass() { return 58.4428e-3 ; }
+    static Scalar liquidDiffCoeff(Scalar temperature, Scalar pressure) { return 2e-9; }
+    static Scalar density() { return 2165.0; }
+    static Scalar heatCapacity() { return 50.50; }
+};
+
+} // end namespace
+} // end namespace
+
+#endif
+

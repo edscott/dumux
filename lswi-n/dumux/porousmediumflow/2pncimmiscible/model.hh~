@@ -1,0 +1,194 @@
+// -*- mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+// vi: set et ts=4 sw=4 sts=4:
+/*****************************************************************************
+ *   See the file COPYING for full copying permissions.                      *
+ *                                                                           *
+ *   This program is free software: you can redistribute it and/or modify    *
+ *   it under the terms of the GNU General Public License as published by    *
+ *   the Free Software Foundation, either version 2 of the License, or       *
+ *   (at your option) any later version.                                     *
+ *                                                                           *
+ *   This program is distributed in the hope that it will be useful,         *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
+ *   GNU General Public License for more details.                            *
+ *                                                                           *
+ *   You should have received a copy of the GNU General Public License       *
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.   *
+ *****************************************************************************/
+/*!
+ *  \file
+ * \ingroup TwoPNCModel
+ * \brief Adaption of the fully implicit scheme to the
+ *        two-phase n-component fully implicit model.
+ *
+ * This model implements two-phase n-component flow of two
+ * immiscible fluids \f$\alpha \in \{ w, n \}\f$ composed of the n components
+ * \f$\kappa \in \{ w \cdots \}\f$.
+ * The standard multiphase Darcy
+ * approach is used as the equation for the conservation of momentum:
+ * \f[
+ v_\alpha = - \frac{k_{r\alpha}}{\mu_\alpha} \mbox{\bf K}
+ \left(\text{grad}\, p_\alpha - \varrho_{\alpha} \mbox{\bf g} \right)
+ * \f]
+ *
+ * By inserting this into the equations for the conservation of the
+ * components, one gets one transport equation for each component
+ * \f{eqnarray}
+ && \frac{\partial (\sum_\alpha \varrho_\alpha X_\alpha^\kappa \phi S_\alpha )}
+ {\partial t}
+ - \sum_\alpha  \text{div} \left\{ \varrho_\alpha X_\alpha^\kappa
+ \frac{k_{r\alpha}}{\mu_\alpha} \mbox{\bf K}
+ (\text{grad}\, p_\alpha - \varrho_{\alpha}  \mbox{\bf g}) \right\}
+ \nonumber \\ \nonumber \\
+    &-& \sum_\alpha \text{div} \left\{{\bf D_{\alpha, pm}^\kappa} \varrho_{\alpha} \text{grad}\, X^\kappa_{\alpha} \right\}
+ - \sum_\alpha q_\alpha^\kappa = 0 \qquad \kappa \in \{w, a,\cdots \} \, ,
+ \alpha \in \{w, g\}
+ \f}
+ *
+ * All equations are discretized using a vertex-centered finite volume (box)
+ * or cell-centered finite volume scheme as
+ * spatial and the implicit Euler method as time discretization.
+ *
+ * By using constitutive relations for the capillary pressure \f$p_c =
+ * p_n - p_w\f$ and relative permeability \f$k_{r\alpha}\f$ and taking
+ * advantage of the fact that \f$S_w + S_n = 1\f$ and \f$X^\kappa_w + X^\kappa_n = 1\f$, the number of
+ * unknowns can be reduced to number of components.
+ *
+ * The used primary variables are, like in the two-phase model, either \f$p_w\f$ and \f$S_n\f$
+ * or \f$p_n\f$ and \f$S_w\f$. The formulation which ought to be used can be
+ * specified by setting the <tt>Formulation</tt> property to either
+ * TwoPNCImmiscibleIndices::pwsn or TwoPNCImmiscibleIndices::pnsw. By
+ * default, the model uses \f$p_w\f$ and \f$S_n\f$.
+ *
+ * The phase state is stored for all nodes of the system.
+ * The model is uses mole fractions.
+ *
+ * For the other components, the mole fraction \f$x^\kappa_w\f$ is the primary variable.
+ */
+
+#ifndef DUMUX_2PNC_IMMISCIBLE_MODEL_HH
+#define DUMUX_2PNC_IMMISCIBLE_MODEL_HH
+
+#include <dune/common/fvector.hh>
+#include <dumux/common/properties.hh>
+
+#include <dumux/porousmediumflow/compositional/primaryvariableswitch.hh>
+#include <dumux/porousmediumflow/2pnc/model.hh>
+#include <dumux/porousmediumflow/2p/saturationreconstruction.hh>
+
+#include "volumevariables.hh"
+//#include "vtkoutputfields.hh"
+#include "indices.hh"
+
+namespace Dumux {
+
+/*!
+ * \ingroup TwoPNCImmiscibleModel
+ * \brief Specifies a number properties of two-phase immiscible n-component models.
+ *
+ * \tparam nComp the number of components to be considered.
+ * \tparam useMol whether to use molar or mass balances
+ */
+template<int nComp, bool useMol, TwoPFormulation formulation>
+struct TwoPNCImmiscibleModelTraits
+{
+    using Indices = TwoPNCImmiscibleIndices<nComp>;
+
+    static constexpr int numEq() { return nComp; }
+    static constexpr int numPhases() { return 2; }
+    static constexpr int numComponents() { return nComp; }
+
+    static constexpr bool enableAdvection() { return true; }
+    static constexpr bool enableMolecularDiffusion() { return true; }
+    static constexpr bool enableEnergyBalance() { return false; }
+
+    static constexpr bool useMoles() { return useMol; }
+
+    static constexpr TwoPFormulation priVarFormulation() { return formulation; }
+};
+
+/*!
+ * \ingroup TwoPNCImmiscibleModel
+ * \brief Traits class for the volume variables of the single-phase model.
+ *
+ * \tparam PV The type used for primary variables
+ * \tparam FSY The fluid system type
+ * \tparam FST The fluid state type
+ * \tparam PT The type used for permeabilities
+ * \tparam MT The model traits
+ * \tparam SR Saturation reconstruction type
+ */
+template< class PV, class FSY, class FST,
+          class SSY, class SST, class PT, class MT, class SR >
+struct TwoPNCImmiscibleVolumeVariablesTraits
+{
+    using PrimaryVariables = PV;
+    using FluidSystem = FSY;
+    using FluidState = FST;
+    using SolidSystem = SSY;
+    using SolidState = SST;
+    using PermeabilityType = PT;
+    using ModelTraits = MT;
+    using SaturationReconstruction = SR;
+};
+
+namespace Properties {
+//////////////////////////////////////////////////////////////////
+// Type tags
+//////////////////////////////////////////////////////////////////
+NEW_TYPE_TAG(TwoPNCImmiscible, INHERITS_FROM(TwoPNC));
+
+//////////////////////////////////////////////////////////////////
+// Properties for the isothermal 2pnc model
+//////////////////////////////////////////////////////////////////
+//! The primary variables vector for the 2pnc model
+SET_PROP(TwoPNCImmiscible, PrimaryVariables)
+{
+public:
+    using type = Dune::FieldVector<typename GET_PROP_TYPE(TypeTag, Scalar),
+                                   GET_PROP_TYPE(TypeTag, ModelTraits)::numEq()>;
+};
+
+SET_TYPE_PROP(TwoPNCImmiscible, PrimaryVariableSwitch, NoPrimaryVariableSwitch);  //!< The primary variable switch for the 2pnc model
+SET_TYPE_PROP(TwoPNCImmiscible, VtkOutputFields, TwoPNCImmiscibleVtkOutputFields);
+
+//! Set the volume variables property
+SET_PROP(TwoPNCImmiscible, VolumeVariables)
+{
+private:
+    using PV = typename GET_PROP_TYPE(TypeTag, PrimaryVariables);
+    using FSY = typename GET_PROP_TYPE(TypeTag, FluidSystem);
+    using FST = typename GET_PROP_TYPE(TypeTag, FluidState);
+    using SSY = typename GET_PROP_TYPE(TypeTag, SolidSystem);
+    using SST = typename GET_PROP_TYPE(TypeTag, SolidState);
+    using MT = typename GET_PROP_TYPE(TypeTag, ModelTraits);
+    using PT = typename GET_PROP_TYPE(TypeTag, SpatialParams)::PermeabilityType;
+
+    static constexpr auto DM = GET_PROP_TYPE(TypeTag, FVGridGeometry)::discMethod;
+    static constexpr bool enableIS = GET_PROP_VALUE(TypeTag, EnableBoxInterfaceSolver);
+    // class used for scv-wise reconstruction of non-wetting phase saturations
+    using SR = TwoPScvSaturationReconstruction<DM, enableIS>;
+
+    using Traits = TwoPNCImmiscibleVolumeVariablesTraits<PV, FSY, FST, SSY, SST, PT, MT, SR>; // DUDA ¿?
+public:
+    using type = TwoPNCImmiscibleVolumeVariables<Traits>;
+};
+
+//! Set the model traits
+SET_PROP(TwoPNCImmiscible, ModelTraits)
+{
+private:
+    //! we use the number of components specified by the fluid system here
+    using FluidSystem = typename GET_PROP_TYPE(TypeTag, FluidSystem);
+    static_assert(FluidSystem::numPhases == 2, "Only fluid systems with 2 fluid phases are supported by the 2p-nc immiscible model!");
+public:
+    using type = TwoPNCImmiscibleModelTraits<FluidSystem::numComponents,
+                                   GET_PROP_VALUE(TypeTag, UseMoles),
+                                   GET_PROP_VALUE(TypeTag, Formulation)>;
+};
+
+} // end namespace Properties
+} // end namespace Dumux
+
+#endif

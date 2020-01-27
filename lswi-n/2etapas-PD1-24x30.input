@@ -1,0 +1,88 @@
+[TimeLoop]
+DtInitial = 0.04                    # [s] initial time step size
+TEnd = 77400  # [s]  21.5 h
+TimeLimit = 40  # program execution time limit in minutes
+MaxTimeStepSize = 1e100
+
+
+[Grid]
+UpperRight = 0.0382 0.0499 # x-/y-coordinates of the upper-right corner of the grid [m]
+Cells = 24 30   # x-/y-resolution of the grid
+
+[SpatialParams]
+# Comment out next line to use BCMV with high/low salinity
+# if BCM is enabled, then LS values are not even read.
+#useBCM = 1
+
+
+MatrixPermeability = 6.547e-14
+MatrixPorosity = 0.1839
+
+# Modified Brooks Corey Functions Parameters for initial conditions
+# May be overwritten in any episode.
+
+MatrixLambda = 2.1               # Capillary pressure exponent
+MatrixPe = 2650.0                # Entry pressure
+
+# Wetting phase (brine)
+MatrixSwr = 0.2297               
+Matrixnw = 3.0                 
+MatrixKrwMax = 0.3          
+
+# Nonwetting phase (oil)
+MatrixSnr =  0.45179            
+Matrixnn = 1.0
+MatrixKrnMax = 0.75             
+
+
+[ Vtk ]
+AddVelocity = "1"
+
+[Problem]
+Name = PD1
+EnableGravity = 0
+InitialPressure = 1.72e7            # [Pa] | 1380 [psi] = 9.51e6 [Pa]
+InitialSw = 0.2297                  # [-]
+Temperature = 100                    # [°C]
+RelativeVelocity = 1.0
+
+BrineDensity = 1130
+BrineViscosity = 3e-4
+#Wetting_flow = -1.37e-3       # [kg/m2s]
+# flow / density = kg/m2s / kg/m3 = m/s 
+# -1.37e-3 / 1130 = 1.2124e-6
+InjectionVelocity = 1.2124e-6 
+
+Stages = 2 #
+# UseMoleFractions = 1 # comment to use ppm
+Particles = 1
+# nacl_massX_initial = 0.191486 #  initial salinity 
+# ppm = X * 1e6
+ppmNaCl = 191486.0 # [ppm] initial concentration 
+
+[Problem.Particle.1]
+Idx ="NaCl"
+MolecularWeight=58.4428  # gmol
+[Stage.1]
+Name = HSWF-K1
+#Episodes = 2 # If not specified, single episode per stage.
+ppmNaCl = 191486.0 # [ppm] initial concentration 
+
+[Stage.2]
+Name = HSWF
+ppmNaCl = 1914.86 # [ppm] initial concentration 
+MatrixSnr = 0.295
+MatrixKrnMax = 1.0
+
+[Stage.1.1]
+lowerTimeStepBoundary = 0  # [h]
+upperTimeStepBoundary =  9.5  # [h] 32000s
+
+[Stage.2.1]
+lowerTimeStepBoundary = 9.5  # [h]
+upperTimeStepBoundary =  1e100  # [h] 40000s
+
+
+
+
+

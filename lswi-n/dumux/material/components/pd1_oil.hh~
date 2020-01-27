@@ -1,0 +1,102 @@
+// -*- mode: C++; tab-width: 4; indent-tabs-mode: nil; c-basic-offset: 4 -*-
+// vi: set et ts=4 sw=4 sts=4:
+/*****************************************************************************
+ *   See the file COPYING for full copying permissions.                      *
+ *                                                                           *
+ *   This program is free software: you can redistribute it and/or modify    *
+ *   it under the terms of the GNU General Public License as published by    *
+ *   the Free Software Foundation, either version 2 of the License, or       *
+ *   (at your option) any later version.                                     *
+ *                                                                           *
+ *   This program is distributed in the hope that it will be useful,         *
+ *   but WITHOUT ANY WARRANTY; without even the implied warranty of          *
+ *   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the            *
+ *   GNU General Public License for more details.                            *
+ *                                                                           *
+ *   You should have received a copy of the GNU General Public License       *
+ *   along with this program.  If not, see <http://www.gnu.org/licenses/>.   *
+ *****************************************************************************/
+/*!
+ * \file
+ * \ingroup Components
+ * \brief  A ficitious OIL to be implemented in LSWF application.
+ */
+#ifndef DUMUX_OIL_HH
+#define DUMUX_OIL_HH
+
+#include <dumux/material/components/base.hh>
+#include <dumux/material/components/liquid.hh>
+
+namespace Dumux{
+namespace Components {
+
+/*!
+ * \ingroup Components
+ * \brief A ficitious OIL to be implemented in LSWF application.
+ *
+ * \tparam Scalar The type used for scalar values
+ */
+template <class Scalar>
+class Oil : 
+    public Components::Base<Scalar, Oil<Scalar> >,
+    public Components::Liquid<Scalar, Oil<Scalar> >
+{
+
+public:
+    /*!
+     * \brief A human readable name for Oil.
+     */
+    static std::string name()
+    { return "Oil"; }
+
+    /*!
+     * \brief The molar mass in \f$\mathrm{[kg/mol]}\f$ of oil
+     */
+    constexpr static Scalar molarMass()
+    { return 0.350; }
+
+    /*!
+     * \brief Return whether a phase is liquid
+     *
+     * \param phaseIdx The index of the fluid phase to consider
+     */
+    static constexpr bool isLiquid()
+    {
+        return true;
+    }
+
+    /*!
+    * \brief Returns true if the liquid phase is assumed to be compressible
+    */
+    static constexpr bool liquidIsCompressible()
+    { return false; }
+
+    /*!
+     * \brief Rough estimate of the liquid density of oil \f$\mathrm{[kg/m^3]}\f$.
+     *
+     * \param temperature temperature of component in \f$\mathrm{[K]}\f$
+     * \param pressure pressure of component in \f$\mathrm{[Pa]}\f$
+     */
+    static Scalar liquidDensity(Scalar temperature, Scalar pressure)
+    {
+        return 881.6; // [kg/m^3]
+    }
+
+    /*!
+     * \brief Rough estimate of the liquid viscosity of oil in \f$\mathrm{[Pa*s]}\f$.
+     *
+     * \param temperature temperature of component in \f$\mathrm{[K]}\f$
+     * \param pressure pressure of component in \f$\mathrm{[Pa]}\f$
+     */
+    static Scalar liquidViscosity(Scalar temperature, Scalar pressure)
+    {
+        return 1.08e-2;// [Pa*s]
+    }
+
+};
+
+} // end namespace Components
+
+} // end namespace Dumux
+
+#endif
